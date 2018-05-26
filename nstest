@@ -1,0 +1,406 @@
+#!/bin/bash
+# shellcheck disable=SC2016
+# SC2016 Expressions don't expand in single quotes ('```')
+
+##### license LPRAB/WTFPL
+#  auteur: sdeb
+#    contributeurs: kyodev
+#####
+
+version=1.0
+script="nstest"
+date="26/05/2018"
+#~ contact="irc:freenode.net##sdeb"
+
+if ! command -v sort > /dev/null; then
+	echo -e "'sort' not found, install coreutils if you want a sorted report\\n"
+fi
+if command -v dig > /dev/null; then
+	dig=dig
+elif command -v drill > /dev/null; then
+	dig=drill
+	echo -e "'dill' is terribly slower (no management timeout), for frequent use, install dig (dnsutils) \\n"
+else
+	echo "dig (and drill) not found,  install it with dnsutils"
+	exit 1
+fi
+
+	# assign ${nameservers[@]} ${dns[@]} 
+assign_variables(){		# 25/05/2018
+	dns=(
+		'176.103.130.132 # adguard'
+		'185.228.168.168 # cleanbrowsing'
+		'1.1.1.1 # cloudflare'
+		'8.26.56.26 # comodo'
+		'80.80.80.80 # freenom'
+		'8.8.8.8 # google'
+		'4.2.2.1 # level3'
+		'156.154.70.3 # neustar'
+		'199.85.126.20 # norton'
+		'208.67.222.123 # opendns'
+		'9.9.9.9 # quad9'
+		'77.88.8.7 # yandex'
+	)
+	case "$testsarray" in
+		alt )
+			domains_test=(
+				whois.biz
+				pik.bzh
+				www.coop
+				lafibre.info
+				github.io
+				bmwgroup.jobs
+				dotmobi.mobi
+				do.tel
+				france.tv
+				gen.xyz
+			) ;;
+		atld )
+			domains_test=(
+				register.bbs
+				opennic.chan
+				opennic.cyb
+				nic.fur
+				rojaciwan.ku
+				register.neo
+				reg.null
+				opennic.oz
+				uptime.party 
+				vtje.ti
+			) ;;
+		base )
+			domains_test=(
+				debian.org
+				eurid.eu
+				free.fr
+				google.com 
+				info.info
+				kernel.org
+				be.libre
+				ovh.net
+				packager.io
+				transfer.sh
+			) ;;
+		easy )
+			domains_test=(
+				amazon.com
+				facebook.com
+				github.com
+				gmail.com
+				google.com
+				reddit.com
+				twitter.com
+				whatsapp.com
+				wikipedia.org
+				youtube.com
+			) ;;
+	esac
+	domains_qty=${#domains_test[@]}
+}
+
+	# getTime : start count
+	# getTime end : comptage fin, calcul fin - départ, affichage différence en ms
+	# getTime end:sec : idem sauf affichage différence en s
+	# getTime end:auto : idem sauf affichage différence en j, h, mn, s si diff > 10s
+	# getTime affichage date en ms, sans unité, pour traitement externe à la fonction
+	# lien utile: https://www.admin-linux.fr/conversion-des-timestamps-dates-au-format-unix-en-bash/
+	# declare -g gTime
+getTime(){	# 25/05/2018
+	local date sec ms time2
+	declare -g gTime
+	date=$( date +%s.%N )	# s.ns timestamp.ns
+	sec=${date%\.*}		# s
+	ms=${date#*\.}		# ns
+	ms=${ms::-6}		# ms
+	if [[ "$*" =~ "end" ]]; then
+		if [[ "$*" =~ "sec" ]]; then
+			time2=$(( $sec$ms-gTime ))
+			echo "${time2::-3}.${time2: -3} s"		# sec avec virgule
+		elif [[ "$*" =~ "auto" ]] && (( ( $sec$ms-gTime ) >= 10000 )); then
+			get_sec2day "$(( sec-${gTime::-3} ))"
+		else
+			echo "$(( $sec$ms-gTime )) ms"
+		fi
+	else
+		gTime="$sec$ms"					# calcul sur ms
+	fi
+}
+
+	# $1 temps en secondes, affiche conversion en jours, h, mn, s
+get_sec2day(){		# 05/05/2018
+	local j h mn sec display
+
+	  j=$(( $1 / (24*3600) ))
+	  h=$(( ($1 % (24*3600)) / 3600 ))
+	 mn=$(( (($1 % (24*3600)) % 3600) / 60 ))
+	sec=$(( (($1 % (24*3600)) % 3600) % 60 ))
+	(( j != 0)) && display+="$j jours "
+	(( h != 0)) && display+="$h h "
+	(( mn != 0)) && display+="$mn mn "
+	(( sec != 0)) && display+="$sec s "
+	echo "${display% }"
+}
+
+	# assign ${nameservers[@]}
+# shellcheck disable=SC2034
+readingResolv(){		# 25/05/2018
+	local a ip ns 
+
+	unset nameservers
+	if [ "$1" ]; then
+		file="$1"
+		while read -r ip ns; do 
+			if [[ ! "$ip" =~ ^[[:blank:]]?# ]]; then
+				if [ "$ns" ]; then
+					nameservers+=( "$ip ${ns}" )
+				else
+					nameservers+=( "$ip # file" )
+				fi
+			fi
+		done < "$1"
+	else
+		while read -r a ip ns; do 
+			if [ "$a" == "nameserver" ]; then
+				if [ "$ns" ]; then
+					nameservers+=( "$ip ${ns}" )
+				else
+					nameservers+=( "$ip # resolv" )
+				fi
+			fi
+		done < /etc/resolv.conf
+	fi
+}
+
+usage(){		# 25/05/2018
+	local ns alldns domains
+	assign_variables
+	for ns in "${dns[@]}"; do ns=${ns#*# }; alldns+="$ns | "; done 
+	for domain in "${domains_test[@]}"; do domains+="$domain | "; done
+	alldns=${alldns::-2}
+	domains=${domains::-2}
+	usage_version
+	cat <<- end
+	  $script [options]
+
+	        --bench    : run with all lists of domains to test
+	        --drill    : drill is forced if existing, otherwise dig has priority 
+	    -e, --export   : export on a pastebin
+	    -c, --compress : no extended report, only time averages
+	    -d, --domains  : choice between 3 test domain lists: base (defaut), alt, atld, or easy 
+	    -f, --file     : the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
+	        --nodns    : only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
+	        --noresolv : the file /etc/resolv.conf is not read, implied with --file
+	        --nosort   : no sorted report on average column
+	        --opt      : print list of dns servers and domains for tests
+	    -h, --help     : this help
+
+	  a time, with a minus before, means that the tested domain is not found 
+	
+	  examples:
+	      ./ntest : full report, with nameservers in /etc/resolv.conf and few open DNS servers
+	      ./ntest --nodns --compress : report with only averages with only nameservers in /etc/resolv.conf
+	      ./ntest -e  --noresolv : export on a pastebin, to exchange a test
+	      ./ntest --noresolv -d easy : full report, with domains to test easy, performances are better (responses in cache DNS)
+	      ./ntest -h  -d alt : this help, with domain list alt(ernative)
+
+	  dns servers: $alldns
+	  test domains: $domains
+
+	  more info: $url_notice
+
+	end
+}
+
+# shellcheck disable=SC1117
+usage_version(){		# 24/05/2018
+	cat <<- end
+	             _            _   
+	   _ __  ___| |_ ___  ___| |_ 
+	  | '_ \/ __| __/ _ \/ __| __|
+	  | | | \__ \ ||  __/\__ \ |_ 
+	  |_| |_|___/\__\___||___/\__| $script_options
+	end
+	echo -e "\\tversion: v$version $date\\n"
+}
+
+z_core(){		# 26/05/2018
+	local ns server_ip server_name width wcol margin header xyz domain time_sum line time time_sum 
+	local average unit report footer output ligneRapport 
+
+	usage_version
+	if [ -z "$noresolv" ]; then
+		readingResolv "$dnsfile"
+	fi
+	assign_variables "$testsarray"
+	[ "$nodns" ] && unset dns
+	if [ "$drilltest" ] && command -v drill > /dev/null; then
+		dig=drill
+	fi
+
+		# first column width 
+	for ns in "${nameservers[@]}" "${dns[@]}"; do
+		server_ip=${ns%[[:blank:]]#*}
+		server_name=${ns#*#[[:blank:]]}
+		[[ "$server_name" =~ \# ]] && server_name=${ns#*#}
+		(( ( ${#server_ip} + ${#server_name} + 4 ) >= width )) && width=$(( ${#server_ip} + ${#server_name} + 4 ))
+	done
+
+	wcol=8
+	margin="  "
+		# report header
+	header=$( printf "${margin}%-${width}s" "" )
+	if [ -z "$compress" ]; then
+		xyz=1
+		for domain in "${domains_test[@]}"; do
+			header+=$( printf "%-${wcol}s" "$xyz:${domain#*.}" )
+			(( xyz++ ))
+		done
+	fi
+	header+=$( printf "%$(( wcol + 3 ))s\\n" "Average" )
+
+		# report's lines
+	for ns in "${nameservers[@]}" "${dns[@]}"; do
+		server_ip=${ns%[[:blank:]]#*}
+		server_name=${ns#*#[[:blank:]]}
+		[[ "$server_name" =~ \# ]] && server_name=${ns#*#}
+		printf "\\r  %40s" " "
+		printf "\\r  %s " "$server_name"
+		time_sum=0
+		line=$( printf "${margin}%-${width}s" "$server_name ($server_ip)" )
+
+		for domain in "${domains_test[@]}"; do
+			printf .
+			if [ "$dig" == "dig" ]; then
+				! time=$( LC_ALL=C $dig +tries=1 +timeout=1 @"$server_ip" "$domain" 2>/dev/null ) && time="n/a"
+			elif [ "$dig" == "drill" ]; then
+				! time=$( LC_ALL=C drill  @"$server_ip" "$domain" 2>/dev/null ) && time="n/a"
+			fi
+			if [ "$time" != 'n/a' ] ; then
+				[[ "${time,,}" =~ ^.*flags:.*answer:\ 0 ]] && notfound="yes" || notfound=""
+				[[ "${time,,}" =~ ^.*query\ time:\ ([0-9].*)\ msec  ]] && time="${BASH_REMATCH[1]}"
+				time_sum=$(( time_sum + time ))
+				[ "$notfound" ] && time="-$time"
+			fi
+			if [ -z "$compress" ]; then
+				line+=$( printf "%-${wcol}s" "$time" )
+			fi
+		done
+
+		average=$(( time_sum * 100  / domains_qty ))
+		if (( average != 0 )); then
+			average=${average::-2}.${average:(-2):2}
+		else
+			average="99999"
+		fi
+		[ "$average" != "99999" ] && unit=' ms' || unit=" n/a"
+		report+="$line$( printf "%$(( wcol + 1 ))s" "$average" )$unit"$'\n'
+	done
+	report=${report%$'\n'}
+	printf "\\r  %40s\\r" " "
+
+		# sort if no nosort option and command sort
+	if [ -z "$nosort" ] && command -v sort > /dev/null; then
+		[ "$compress" ] && unset domains_qty 
+		report=$( echo "$report" | sort -n -k $(( domains_qty + 3 )) )
+	fi
+
+	echo "$header"
+	echo "$report"
+
+	if [[ -z "$compress" ]]; then
+		echo -en "\\n  tested domains:\\n  "
+		i=1
+		for domain in "${domains_test[@]}"; do
+			footer+=$( echo -n "$i:${domain}" )" "
+			(( i++ ))
+		done
+		echo "$footer"
+		echo
+	fi
+
+	if [ "$export" ]; then
+		output="${script}_report.md"
+		ligneRapport="Report $(date '+%d/%m/%Y %H:%M %z')  ◇  $(uname -n)  ◇  $0 $script_options  ◇  $version"
+		echo "$ligneRapport" > "$output"
+		{
+			printf "\\n%s\\n" '```'
+			echo "$header"
+			echo "$report"
+			printf "%s\\n" '```'
+			[ "$footer" ] && echo "$footer"
+		} >> "$output"
+		printf "%s \\n\\n" "report url:"
+		curl -s --upload-file "$output" "https://transfer.sh/$output"
+		echo
+		echo "voir le rapport généré: pager $output"
+		echo "effacer le rapport généré: rm $output"
+	fi
+}
+
+
+#######  variables  script -----------------------------------------------------
+
+#~ url_script="https://framaclic.org/h/nstest"		# https://framagit.org/sdeb/nstest/blob/master/nstest
+url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nstest/blob/master/README.md
+
+#######  options processing ----------------------------------------------------
+
+testsarray="base"
+script_options="$*"
+td=( base alt atld easy )
+	# options
+while (( $# )) ; do
+	case "$1" in
+		     --bench    ) totest=( "${td[@]}" ) ; bench='yes' ;;
+		     --drill    ) drilltest='yes'  ;;
+		-e | --export   ) export='yes'     ;;
+		-c | --compress ) compress='yes'   ;;
+		-d | --domains  ) testsarray="$2" ; shift
+			case "$testsarray" in 
+				alt | atld | base | easy) ;; 
+				* ) echo '  test domains: base selected'; testsarray="base" ;;
+			esac ;;
+		-f | --file     ) dnsfile="$2"    ; shift ;;
+		     --nodns    ) nodns='yes'      ;;
+		     --noresolv ) noresolv='yes'   ;;
+		     --nosort   ) nosort='yes'     ;;
+		* ) options+=( "$1" )
+	esac
+	shift
+done
+(( "${#totest[@]}" == 0 )) && totest=( "$testsarray" )
+	# actions
+for i in "${options[@]}" ; do
+	case "$i" in
+		--opt )	assign_variables
+				for ns in "${dns[@]}"; do ip=${ns% #*}; ns=${ns#*# }; echo "$ns ( $ip )   "; done; echo
+				for test in "${td[@]}"; do
+					testsarray="$test"; assign_variables; unset domains
+					for domain in "${domains_test[@]}"; do domains+="$domain | "; done
+					echo "list $test: ${domains::-2}"
+				done
+			exit ;;
+		-h | --help | * ) usage ; exit ;;
+	esac
+done
+
+
+####  script core -----------------------------------------------------------
+
+for list in "${totest[@]}"; do
+	testsarray="$list"
+	getTime
+	z_core
+	echo -n "  execution time: "
+	echo -en "$( getTime end:auto )\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
+	echo
+	[ "$bench" ] && sleep 30s
+done
+
+exit
+
+curl -0 https://framaclic.org/h/nstest
+wget -nv -O nstest https://framaclic.org/h/nstest
+chmod +x nstest && ./nstest
+
+https://framagit.org/sdeb/nstest/blob/master/nstest
