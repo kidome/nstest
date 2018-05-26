@@ -1,11 +1,10 @@
 # nstest: test of DNS servers
 
 
-[version: v1.0](https://img.shields.io/badge/version-1.0%20-blue.svg?longCache=true&style=for-the-badge)  
+![version: v1.0](https://img.shields.io/badge/version-1.0%20-blue.svg?longCache=true&style=for-the-badge)  
 ![bash langage](https://img.shields.io/badge/bash-version4-brightgreen.svg)
 ![status](https://img.shields.io/badge/status-release-green.svg)
-[![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)](https://framagit.org/sdeb/nstest/blob/master/LICENSE.md)
-
+![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
 
 
 this script test several open DNS servers and/or servers in `resolv.conf` or another file.   
