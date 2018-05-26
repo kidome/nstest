@@ -399,8 +399,9 @@ done
 
 exit
 
-curl -0 https://framaclic.org/h/nstest
+curl -OL nstest https://framaclic.org/h/nstest
 wget -nv -O nstest https://framaclic.org/h/nstest
 chmod +x nstest && ./nstest
 
-https://framagit.org/sdeb/nstest/blob/master/nstest
+https://framagit.org/sdeb/nstest/tree/master
+https://framagit.org/sdeb/nstest/raw/master/nstest

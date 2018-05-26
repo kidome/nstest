@@ -66,7 +66,7 @@ git clone https://framagit.org/sdeb/nstest.git
  # or
 git clone git@framagit.org:sdeb/nstest.git
  # or
-curl -0 https://framaclic.org/h/nstest
+curl -OL https://framaclic.org/h/nstest
  # or
 wget -nv -O nstest https://framaclic.org/h/nstest
 
@@ -221,7 +221,7 @@ Depending on the domains, the response times may differ significantly
 
 some servers, outside OpenNic, resolve alternative domain names, today: level3 && norton 
 
-* [OpenNIC](): .bbs, .chan, .dyn, .fur, .geek, .gopher, .indy, .libre, .neo, .null, .o, .oss, .oz, .parody, .pirate
+* [OpenNIC](https://www.opennic.org/): .bbs, .chan, .dyn, .fur, .geek, .gopher, .indy, .libre, .neo, .null, .o, .oss, .oz, .parody, .pirate
 * [Emercoin](https://emercoin.com/en/tech-solutions?page=49#services): .bazar, .coin, .amc, .lib, 
 * [FurNIC](http://www.nic.fur/): .fur
 * [Namecoin](https://namecoin.org/): .bit
