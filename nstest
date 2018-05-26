@@ -271,7 +271,7 @@ z_core(){		# 26/05/2018
 		for domain in "${domains_test[@]}"; do
 			printf .
 			if [ "$dig" == "dig" ]; then
-				! time=$( LC_ALL=C $dig +tries=1 +timeout=1 @"$server_ip" "$domain" 2>/dev/null ) && time="n/a"
+				! time=$( LC_ALL=C $dig +tries=1 +timeout=1 +stats @"$server_ip" "$domain" 2>/dev/null ) && time="n/a"
 			elif [ "$dig" == "drill" ]; then
 				! time=$( LC_ALL=C drill  @"$server_ip" "$domain" 2>/dev/null ) && time="n/a"
 			fi
