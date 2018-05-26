@@ -7,16 +7,16 @@
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
 
 
-this script test several open DNS servers and/or servers in `resolv.conf` or another file.   
+This script test several open DNS servers and/or servers in `resolv.conf` or another file.   
 
-it's is writing with bash only for speed, except for `dig` (required) and `sort` (not required but useful for the sort)
+It's written using bash only for speed, except for `dig` (required) and `sort` (not required but useful for the sort)
 
-the results are sorted on average times. 
+The results are sorted on average times. 
 
 `dig` is delivered in dnsutils package (`apt install dnsutils` on debian).   
-`drill` (package ldns) is not advisable, no management of timeout, except if I don't know to read the manual. 
+`drill` (package ldns) is not advisable, no management of timeout, except if I don't know how to read a manual. 
 
-it can export the report on a pastebin for easy exchange
+It can be exported the report on a pastebin for easy exchange.
 
 
 ## usage
@@ -90,7 +90,7 @@ quad9 ( 9.9.9.9 )
 yandex ( 77.88.8.7 )   
 
 
-depending on the domains, the response times may differ significantly
+Depending on the domains, the response times may differ significantly
 
 * base: 
   * debian.org | eurid.eu | free.fr | google.com | info.info | kernel.org | be.libre | ovh.net | packager.io | transfer.sh 
