@@ -7,9 +7,9 @@
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
 
 
-This script test several open DNS servers and/or servers in `resolv.conf` or another file.   
+This script tests several open DNS servers and/or servers which names must be present in `resolv.conf` or in another file.   
 
-It's written using bash only for speed, except for `dig` (required) and `sort` (not required but useful for the sort)
+It's written in bash only for speed, except for `dig` (required) and `sort` (not required but useful for the sort)
 
 The results are sorted on average times. 
 
