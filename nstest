@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.1
+version=1.2
 script="nstest"
-date="26/05/2018"
+date="28/05/2018"
 #~ contact="irc:freenode.net##sdeb"
 
 if ! command -v sort > /dev/null; then
@@ -171,12 +171,21 @@ readingResolv(){		# 25/05/2018
 	fi
 }
 
-usage(){		# 25/05/2018
-	local ns alldns domains
+usage(){		# 28/05/2018
+	local ns server_name allns alldns domains
+
 	assign_variables
+	[ -z "$noresolv" ] && readingResolv "$dnsfile"
+	[[ -z "$noresolv" && -z "$dnsfile" ]] && dnsfile="resolv.conf"
+	for ns in "${nameservers[@]}"; do
+		server_name=${ns#*#[[:blank:]]}
+		[[ "$server_name" =~ \# ]] && server_name=${ns#*#}
+		allns+="$server_name | "
+	done
+	allns=${allns::-2}
 	for ns in "${dns[@]}"; do ns=${ns#*# }; alldns+="$ns | "; done 
-	for domain in "${domains_test[@]}"; do domains+="$domain | "; done
 	alldns=${alldns::-2}
+	for domain in "${domains_test[@]}"; do domains+="$domain | "; done
 	domains=${domains::-2}
 	usage_version
 	cat <<- end
@@ -203,8 +212,13 @@ usage(){		# 25/05/2018
 	      ./ntest --noresolv -d easy : full report, with domains to test easy, performances are better (responses in cache DNS)
 	      ./ntest -h  -d alt : this help, with domain list alt(ernative)
 
-	  dns servers: $alldns
-	  test domains: $domains
+	  dns servers: 
+	      $alldns
+	end
+	[ "$allns" ] && echo "      ($dnsfile) $allns"
+	cat <<- end
+	  test domains ('$testsarray' list): 
+	      $domains
 
 	  more info: $url_notice
 
@@ -223,7 +237,7 @@ usage_version(){		# 24/05/2018
 	echo -e "\\tversion: v$version $date\\n"
 }
 
-z_core(){		# 26/05/2018
+z_core(){		# 28/05/2018
 	local ns server_ip server_name width wcol margin header xyz domain time_sum line time time_sum 
 	local average unit report footer output ligneRapport 
 
@@ -308,7 +322,7 @@ z_core(){		# 26/05/2018
 	echo "$report"
 
 	if [[ -z "$compress" ]]; then
-		echo -en "\\n  tested domains:\\n  "
+		echo -en "\\n  tested domains ('$testsarray' list):\\n  "
 		i=1
 		for domain in "${domains_test[@]}"; do
 			footer+=$( echo -n "$i:${domain}" )" "
@@ -347,7 +361,7 @@ url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nst
 
 testsarray="base"
 script_options="$*"
-td=( base alt atld easy )
+td=( base alt easy atld )
 	# options
 while (( $# )) ; do
 	case "$1" in

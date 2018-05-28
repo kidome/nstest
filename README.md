@@ -1,7 +1,7 @@
 # nstest: test of DNS servers
 
 
-![version: v1.1](https://img.shields.io/badge/version-1.1%20-blue.svg?longCache=true&style=for-the-badge)
+![version: v1.2](https://img.shields.io/badge/version-1.2%20-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-version4-brightgreen.svg)
 ![status](https://img.shields.io/badge/status-release-green.svg)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
@@ -27,7 +27,7 @@ It can be exported the report on a pastebin for easy exchange.
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| -h
-	version: v1.0 26/05/2018
+	version: v1.2 28/05/2018
 
   nstest [options]
 
@@ -52,11 +52,12 @@ It can be exported the report on a pastebin for easy exchange.
       ./ntest --noresolv -d easy : full report, with domains to test easy, performances are better (responses in cache DNS)
       ./ntest -h  -d alt : this help, with domain list alt(ernative)
 
-  dns servers: ...
-  test domains: ...
+  dns servers: 
+      ...
+  test domains ('base' list): 
+      debian.org | eurid.eu | free.fr | google.com | info.info | kernel.org | be.libre | ovh.net | packager.io | transfer.sh 
 
   more info: https://framaclic.org/h/doc-nstest
-
 ```
 
 ## download
@@ -96,10 +97,10 @@ Depending on the domains, the response times may differ significantly
   * debian.org | eurid.eu | free.fr | google.com | info.info | kernel.org | be.libre | ovh.net | packager.io | transfer.sh 
 * alt: 
   * whois.biz | pik.bzh | www.coop | lafibre.info | github.io | bmwgroup.jobs | dotmobi.mobi | do.tel | france.tv | gen.xyz 
-* atld: 
-  * register.bbs | opennic.chan | opennic.cyb | nic.fur | rojaciwan.ku | register.neo | reg.null | opennic.oz | uptime.party | vtje.ti 
 * easy: 
   * amazon.com | facebook.com | github.com | gmail.com | google.com | reddit.com | twitter.com | whatsapp.com | wikipedia.org | youtube.com 
+* atld: 
+  * register.bbs | opennic.chan | opennic.cyb | nic.fur | rojaciwan.ku | register.neo | reg.null | opennic.oz | uptime.party | vtje.ti 
 
 
 ## license
@@ -116,105 +117,107 @@ Depending on the domains, the response times may differ significantly
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| --noresolv --bench
-	version: v1.0 26/05/2018
+	version: v1.2 28/05/2018
 
                                   1:org   2:eu    3:fr    4:com   5:info  6:org   7:libre 8:net   9:io    10:sh       Average
-  google (8.8.8.8)                8       13      8       15      24      13      -13     18      46      14          17.20 ms
-  neustar (156.154.70.3)          17      17      17      17      17      17      -17     17      18      17          17.10 ms
-  norton (199.85.126.20)          19      19      17      17      19      17      18      19      18      18          18.10 ms
-  opendns (208.67.222.123)        76      24      15      27      37      15      -16     20      24      150         40.40 ms
-  level3 (4.2.2.1)                15      29      15      15      305     15      23      15      21      25          47.80 ms
-  quad9 (9.9.9.9)                 35      43      31      23      32      24      -26     26      31      282         55.30 ms
-  freenom (80.80.80.80)           26      63      36      23      28      27      -24     29      29      284         56.90 ms
-  cloudflare (1.1.1.1)            9       20      9       9       967     9       -9      9       41      324        140.60 ms
-  comodo (8.26.56.26)             59      800     26      39      279     64      -27     53      45      53         144.50 ms
-  cleanbrowsing (185.228.168.168) 193     172     85      85      112     106     -94     220     107     312        148.60 ms
-  adguard (176.103.130.132)       279     109     409     61      440     77      -76     67      125     90         173.30 ms
-  yandex (77.88.8.7)              325     117     93      51      517     358     -54     88      112     513        222.80 ms
+  google (8.8.8.8)                8       14      8       15      24      8       -13     13      40      13          15.60 ms
+  quad9 (9.9.9.9)                 26      51      38      24      40      23      -25     27      34      24          31.20 ms
+  opendns (208.67.222.123)        15      23      15      27      99      16      -15     20      25      150         40.50 ms
+  freenom (80.80.80.80)           26      62      37      23      168     28      -24     116     28      142         65.40 ms
+  neustar (156.154.70.3)          20      456     17      17      276     31      -19     17      35      17          90.50 ms
+  norton (199.85.126.20)          20      464     17      17      271     19      19      20      40      21          90.80 ms
+  cloudflare (1.1.1.1)            9       18      9       9       580     9       -9      9       24      323         99.90 ms
+  level3 (4.2.2.1)                15      29      15      15      278     16      358     22      249     15         101.20 ms
+  comodo (8.26.56.26)             56      477     23      20      451     60      -57     49      129     37         135.90 ms
+  yandex (77.88.8.7)              188     132     123     51      385     110     -172    86      110     82         143.90 ms
+  cleanbrowsing (185.228.168.168) 107     267     88      90      268     99      -95     222     115     119        147.00 ms
+  adguard (176.103.130.132)       65      168     84      62      538     77      -112    447     587     113        225.30 ms
 
-  tested domains:
+  tested domains ('base' list):
   1:debian.org 2:eurid.eu 3:free.fr 4:google.com 5:info.info 6:kernel.org 7:be.libre 8:ovh.net 9:packager.io 10:transfer.sh 
 
-  execution time: 13 s	 (26/05/2018 13:33 +0200)
+  execution time: 14 s	 (28/05/2018 12:25 +0200)
 
              _            _   
    _ __  ___| |_ ___  ___| |_ 
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| --noresolv --bench
-	version: v1.0 26/05/2018
+	version: v1.2 28/05/2018
 
                                   1:biz   2:bzh   3:coop  4:info  5:io    6:jobs  7:mobi  8:tel   9:tv    10:xyz      Average
-  neustar (156.154.70.3)          17      17      17      17      17      17      17      17      18      17          17.10 ms
-  norton (199.85.126.20)          18      18      18      18      18      18      18      17      18      18          17.90 ms
-  google (8.8.8.8)                8       35      32      8       22      42      13      31      26      21          23.80 ms
-  cloudflare (1.1.1.1)            68      15      157     9       9       21      283     21      9       10          60.20 ms
-  level3 (4.2.2.1)                17      69      154     22      17      35      311     30      32      17          70.40 ms
-  opendns (208.67.222.123)        45      17      191     20      17      28      241     24      94      153         83.00 ms
-  quad9 (9.9.9.9)                 32      26      72      30      268     46      484     27      41      39         106.50 ms
-  freenom (80.80.80.80)           93      126     40      36      42      279     526     48      25      34         124.90 ms
-  comodo (8.26.56.26)             225     72      534     48      39      50      456     82      114     39         165.90 ms
-  cleanbrowsing (185.228.168.168) 137     96      423     231     102     97      111     108     216     379        190.00 ms
-  yandex (77.88.8.7)              86      53      267     209     370     162     673     104     86      110        212.00 ms
-  adguard (176.103.130.132)       211     123     505     365     111     257     195     125     304     129        232.50 ms
+  google (8.8.8.8)                31      33      29      13      13      24      42      28      26      14          25.30 ms
+  norton (199.85.126.20)          37      59      155     24      24      50      29      17      23      24          44.20 ms
+  cloudflare (1.1.1.1)            36      15      158     9       9       206     n/a     12      9       25          47.90 ms
+  quad9 (9.9.9.9)                 23      28      59      32      24      53      411     48      26      39          74.30 ms
+  opendns (208.67.222.123)        44      19      185     16      17      28      658     25      94      17         110.30 ms
+  level3 (4.2.2.1)                47      18      458     15      16      133     376     25      158     17         126.30 ms
+  freenom (80.80.80.80)           84      125     177     38      31      207     297     38      149     163        130.90 ms
+  neustar (156.154.70.3)          17      775     17      17      17      44      324     42      29      143        142.50 ms
+  comodo (8.26.56.26)             281     68      691     48      53      99      164     78      32      32         154.60 ms
+  cleanbrowsing (185.228.168.168) 159     419     341     325     109     97      284     97      175     301        230.70 ms
+  yandex (77.88.8.7)              156     111     387     275     147     102     783     70      171     136        233.80 ms
+  adguard (176.103.130.132)       142     118     466     170     494     312     n/a     160     274     494        263.00 ms
 
-  tested domains:
+  tested domains ('alt' list):
   1:whois.biz 2:pik.bzh 3:www.coop 4:lafibre.info 5:github.io 6:bmwgroup.jobs 7:dotmobi.mobi 8:do.tel 9:france.tv 10:gen.xyz 
 
-  execution time: 16 s	 (26/05/2018 13:34 +0200)
+  execution time: 21 s	 (28/05/2018 12:26 +0200)
 
              _            _   
    _ __  ___| |_ ___  ___| |_ 
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| --noresolv --bench
-	version: v1.0 26/05/2018
-
-                                  1:bbs   2:chan  3:cyb   4:fur   5:ku    6:neo   7:null  8:oz    9:party 10:ti       Average
-  google (8.8.8.8)                -13     -14     -13     -14     -14     -14     -13     -13     -32     -13         15.30 ms
-  neustar (156.154.70.3)          -17     -17     -17     -17     -17     -17     -17     -17     -17     -18         17.10 ms
-  norton (199.85.126.20)          18      18      17      18      18      18      18      18      -18     20          18.10 ms
-  quad9 (9.9.9.9)                 -23     -32     -24     -23     -25     -23     -23     -25     -36     -25         25.90 ms
-  cloudflare (1.1.1.1)            -9      -114    -9      -9      -10     -9      -9      -9      -86     -9          27.30 ms
-  opendns (208.67.222.123)        -15     -16     -15     -15     -16     -16     -15     -16     -160    -15         29.90 ms
-  freenom (80.80.80.80)           -24     -24     -39     -24     -41     -24     -45     -24     -130    -112        48.70 ms
-  yandex (77.88.8.7)              -53     -53     -53     -53     -83     -52     n/a     -53     -262    -53         71.50 ms
-  comodo (8.26.56.26)             -60     -201    -49     -67     -136    -65     -36     -51     -219    -52         93.60 ms
-  cleanbrowsing (185.228.168.168) -97     -94     -87     -86     -94     -90     -87     -94     -120    -98         94.70 ms
-  adguard (176.103.130.132)       -73     -108    -107    -79     -108    -113    -109    -115    -133    -115       106.00 ms
-  level3 (4.2.2.1)                652     23      154     23      18      67      -23     68      -23     68         111.90 ms
-
-  tested domains:
-  1:register.bbs 2:opennic.chan 3:opennic.cyb 4:nic.fur 5:rojaciwan.ku 6:register.neo 7:reg.null 8:opennic.oz 9:uptime.party 10:vtje.ti 
-
-  execution time: 9953 ms	 (26/05/2018 13:34 +0200)
-
-             _            _   
-   _ __  ___| |_ ___  ___| |_ 
-  | '_ \/ __| __/ _ \/ __| __|
-  | | | \__ \ ||  __/\__ \ |_ 
-  |_| |_|___/\__\___||___/\__| --noresolv --bench
-	version: v1.0 26/05/2018
+	version: v1.2 28/05/2018
 
                                   1:com   2:com   3:com   4:com   5:com   6:com   7:com   8:com   9:org   10:com      Average
   cloudflare (1.1.1.1)            9       9       9       9       9       9       9       9       9       9            9.00 ms
-  google (8.8.8.8)                26      8       13      15      15      8       8       8       13      14          12.80 ms
-  level3 (4.2.2.1)                15      15      14      15      15      15      15      15      15      15          14.90 ms
+  level3 (4.2.2.1)                15      15      15      15      15      15      15      16      15      15          15.10 ms
   neustar (156.154.70.3)          17      17      17      17      17      17      17      17      17      17          17.00 ms
-  norton (199.85.126.20)          17      17      17      17      17      17      17      17      17      20          17.30 ms
-  quad9 (9.9.9.9)                 23      22      24      23      23      23      23      24      23      23          23.10 ms
-  comodo (8.26.56.26)             23      23      21      23      21      41      22      28      20      19          24.10 ms
-  freenom (80.80.80.80)           23      23      26      35      23      23      23      50      23      23          27.20 ms
-  opendns (208.67.222.123)        15      16      148     27      15      15      15      17      15      23          30.60 ms
-  yandex (77.88.8.7)              91      51      51      51      51      80      51      81      51      51          60.90 ms
-  adguard (176.103.130.132)       67      62      263     63      62      106     61      78      62      62          88.60 ms
-  cleanbrowsing (185.228.168.168) 87      85      92      90      92      -83     85      96      90      106         90.60 ms
+  norton (199.85.126.20)          17      17      17      17      17      17      17      17      17      17          17.00 ms
+  opendns (208.67.222.123)        16      16      16      22      26      15      15      17      26      22          19.10 ms
+  google (8.8.8.8)                8       8       21      14      13      13      8       13      96      14          20.80 ms
+  quad9 (9.9.9.9)                 24      23      23      22      23      23      23      23      23      23          23.00 ms
+  comodo (8.26.56.26)             20      22      21      23      23      32      22      24      32      32          25.10 ms
+  freenom (80.80.80.80)           30      22      23      27      23      22      23      24      104     23          32.10 ms
+  adguard (176.103.130.132)       61      62      61      62      63      62      63      106     128     64          73.20 ms
+  yandex (77.88.8.7)              59      51      91      51      51      112     51      87      186     52          79.10 ms
+  cleanbrowsing (185.228.168.168) 85      96      102     87      85      -88     88      88      90      83          89.20 ms
 
-  tested domains:
+  tested domains ('easy' list):
   1:amazon.com 2:facebook.com 3:github.com 4:gmail.com 5:google.com 6:reddit.com 7:twitter.com 8:whatsapp.com 9:wikipedia.org 10:youtube.com 
 
-  execution time: 6495 ms	 (26/05/2018 13:35 +0200)
+  execution time: 6632 ms	 (28/05/2018 12:27 +0200)
+
+             _            _   
+   _ __  ___| |_ ___  ___| |_ 
+  | '_ \/ __| __/ _ \/ __| __|
+  | | | \__ \ ||  __/\__ \ |_ 
+  |_| |_|___/\__\___||___/\__| --noresolv --bench
+	version: v1.2 28/05/2018
+
+                                  1:bbs   2:chan  3:cyb   4:fur   5:ku    6:neo   7:null  8:oz    9:party 10:ti       Average
+  cloudflare (1.1.1.1)            -9      -9      -9      -9      -9      -9      -9      -9      -86     -9          16.70 ms
+  google (8.8.8.8)                -14     -22     -13     -13     -14     -13     -13     -13     -34     -13         16.20 ms
+  opendns (208.67.222.123)        -16     -15     -15     -16     -15     -15     -15     -16     -87     -15         22.50 ms
+  quad9 (9.9.9.9)                 -30     -27     -23     -23     -24     -25     -25     -24     -37     -23         26.10 ms
+  freenom (80.80.80.80)           -24     -24     -24     -34     -33     -44     -24     -106    -116    -25         45.40 ms
+  norton (199.85.126.20)          125     18      133     18      32      28      18      18      -21     44          45.50 ms
+  neustar (156.154.70.3)          -27     -26     -127    -120    -47     -32     -17     -19     -171    -19         60.50 ms
+  yandex (77.88.8.7)              -53     -59     -172    -80     -53     -53     -53     -80     -100    n/a         70.30 ms
+  level3 (4.2.2.1)                23      153     17      152     17      153     -17     88      -23     153         79.60 ms
+  comodo (8.26.56.26)             -124    -32     -59     -119    -22     -21     -52     -53     -347    -22         85.10 ms
+  cleanbrowsing (185.228.168.168) -95     -98     -90     -89     -101    -92     -105    -98     -111    -93         97.20 ms
+  adguard (176.103.130.132)       -104    -109    -113    -115    -112    -98     -137    -87     -153    -150       117.80 ms
+
+  tested domains ('atld' list):
+  1:register.bbs 2:opennic.chan 3:opennic.cyb 4:nic.fur 5:rojaciwan.ku 6:register.neo 7:reg.null 8:opennic.oz 9:uptime.party 10:vtje.ti 
+
+  execution time: 10 s	 (28/05/2018 12:26 +0200)
+
 ```
+Remark: the list *atld* is formed with alternative tld, so it can be _normal_ to get short response times, when the DNS does not support these TLDs (domain not found).
 
 
 ## tld alternative
