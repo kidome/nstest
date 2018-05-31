@@ -1,0 +1,163 @@
+## configuration ip_update
+
+# emplacements possibles:
+#   /etc/ip_update.conf
+#   /repertoire/script/ip_update.conf : surcharge celui éventuellement dans /etc/
+# chmod "minimal" conseillé (droits rw seulement pour root): 600 
+
+# interface réseau à surveiller (ipv6), si interface absente ou erronée, la première interface ayant une ip 
+# dans l'ordre ethernet:wlan est sélectionnée (ethernet prioritaire donc). cette option peut être commentée
+ifname='eth0'
+
+# true | false, active le suivi de l'ipv4 publique, l'ipv6 et l'état de la connexion. seuls les changements sont inscrits 
+tracking="true"
+
+# ddns to update: [service dynDns]-> hostname utilisés, comment to disable
+declare -A dynDns=(
+	[dynu]='hostname'
+	[duckdns]='name.duckdns.org'
+	[freemyip]='name.freemyip.com'
+	#~ [hn]='hostname'
+	#~ [noip]='hostname'
+)
+
+# protocl to use, -4: ipv4 only, -6; ipv6 only, -46: both ipv4 & 6
+protocol="-46"
+
+# taille des logs ou des fichiers de suivi (si tracking), en octets et des fichiers de réserve (*.1) 
+# avec une seule rotation la taille utilisée sera donc doublée (fichier + fichier.1)
+# configuration optionnelle
+size_log=20000				# taille de fichier logs, par défaut 10000o
+#~ size_track=10000			# taille de fichier suivi, par défaut 10000o
+
+
+### dynamic DNS services ------------ to configure for each service to use -------------------------
+
+## duckdns.org -> [duckdns]
+declare -A duckdns=(
+	[urlUpdate]="https://www.duckdns.org/update"
+	[token]="token"
+)
+
+## dynu.com -> [dynu]
+declare -A dynu=(
+	[urlUpdate]="https://api.dynu.com/nic/update"
+	[userName]="userName"
+
+	# mot de passe spécifique possible, différent du mot passe du compte, sha256 possible  (md5 théoriquement 
+	# aussi, mais pas réussi et un peu désuet). le pass peut être hashé avec: echo -n <pass> | sha256sum
+	[passw]="clear text password"		# pass en clair
+	[passw]="hash password"				# hash sha256
+
+	# une seule location gérée, surcharge hostname, particularité dynu, les ip de tous les hosts à un endroit (location)
+	# seront donc mis à jour en une seule opération
+	#~ [location]='raspi'
+
+	# <=20, comma separed, si présent, remplace le domaine défini dans dynDns[dynu] (celui-ci reste oligatoire)
+	#~ [multi_domain]="example1.dynu.net,example2.dynu.net"	
+)
+
+##freemyip.ocm -> [freemyip]
+declare -A freemyip=(
+	[urlUpdate]="https://freemyip.com/update"
+	[token]="token"
+)
+
+## hn.org -> [hn]
+declare -A hn=(
+	[urlUpdate]=v3.hn.org/update.php
+	[pool]="pool number"
+	[userName]="username"
+	[passw]="password"
+)
+
+## noip.com -> [noip]
+declare -A noip=(
+	[urlUpdate]=https://dynupdate.no-ip.com/nic/update
+	[userName]=username
+	[passw]=password
+	# mode payant (Enhanced / No-IP Plus feature) true si possible, false if not
+	[offline]="false"
+)
+
+
+### mails via curl ---------------------------------------------------------------------------------
+
+# true / false. False désactive l'envoi mail en plus de la publication dynDns
+envoi_mail="false"
+
+# mail expéditeur doit avoir un domaine conforme car souvent vérifié par le smtp. ce mail apparait comme 
+# l'expéditeur (fake éventuel) dans le mail, NE PAS utiliser format: pseudo<mail>. le mail choisit pourra 
+# influer sur la classification en spam, vérifier les sources du mail reçu. Ce champ servira aussi dans le
+# la négociation SMTP, et doit donc avoir la forme d'un hôte avec un 'fully qualified domain name' (nom de 
+# domaine complètement qualifié). Ajouter si besoin un domaine cohérent, si $HOSTNAME==pc@domain.tdl, 
+# inutile
+mail_from="$HOSTNAME@free.fr"
+
+# sujet du mail
+mail_subject="subject of the mail"
+
+# destinataire(s) des mails, une ou plusieurs lignes
+mail_to=(
+	recipient1
+	recipient2
+	)
+
+
+### smtp sans authentification (dépendant du FAi) --------------------------------------------------
+
+# $smtp_from si vide: $mail_from sera utilisé
+# $smtp_proto protocole: smtp ou smtps (ssl)
+# $smtp_port typiquement: smtp, (port 25) ou smtps (port 465)
+# $smtp_srv, serveur smtp, ex: smtp.free.fr, smtp.orange.fr, smtp.yandex.com, smtp.gmail.com...
+
+#~ smtp_from=
+smtp_proto="smtp"
+smtp_port="25"
+smtp_srv="smtp.fai.tld"
+
+
+### smtp avec authentification, exemple yandex -----------------------------------------------------
+
+# quand authentification, le mail $smtp_from doit être celui de user autorisé auprès du smtp
+
+#~ smtp_from="username@yandex.com"
+#~ smtp_proto="smtps"
+#~ smtp_port="465"
+#~ smtp_srv="smtp.yandex.com"
+#~ smtp_user="username@yandex.com"	# requis uniquement si authentification 
+#~ smtp_pass="password"					# requis uniquement si authentification 
+
+# gmail, à essayer, non testé
+# smtps   smtp.gmail.com   465 
+
+smtp_user=${smtp_user-}		# avoid shellcheck error
+smtp_pass=${smtp_pass-}		# avoid shellcheck error
+
+### general characteristics of services ------------------------------------------------------------
+
+# optionnel: serveur de noms autoritaire, si présent, sera interrogé pour connaître ip zone dns. si absent, une 
+# tentative sera faite de le trouver automatiquement. si non trouvable, l'ip utilisée sera celle coté client donc
+# pas forcément encore à jour. c'est enregistrements peuvent être laissés même si les services ne sont pas utilisés
+declare -A namesServer=(
+	[duckdns]="ns2.duckdns.org"
+	[dynu]="ns1.dynu.com"
+	[freemyip]="ns-1.freemyip.com"
+	[hn]="z1.ns.hn.org"
+	[noip]="nf1.no-ip.com"
+)
+
+# services that support IPV4 and actived, comment to disabble ipv4 update, useless to comment if service not used
+declare -a dynDns4=(
+	duckdns
+	dynu
+	freemyip
+	hn
+	noip
+)
+
+# services that support IPV6 and active them, comment to disabble ipv6 update, useless to comment if service not used
+declare -a dynDns6=(
+	duckdns
+	dynu
+)

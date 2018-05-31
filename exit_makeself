@@ -1,0 +1,17 @@
+#!/bin/bash
+
+version=1.0
+date=31.05.2018
+
+script='ipupdate'
+
+./"$script" -h
+rm "exit_makeself"
+rm "$script.log"
+#~ rm "$USER_PWD/ipupdate.run"
+
+#~ USER_PWD:/home/user/oath/ini
+#~ PWD:/home/user/oath/ini/ipupdate-release
+#~ fail:
+#~ cd "$USER_PWD/ipupdate-release"
+#~ cd "$PWD"

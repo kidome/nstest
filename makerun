@@ -1,0 +1,38 @@
+#!/bin/bash
+
+version=1.0
+date=31.05.2018
+
+script='ipupdate'
+repmakeself='makeself-2.4.0'
+
+makedir(){
+	mkdir "$script"-release
+	ln exit_makeself "$script"-release/exit_makeself
+	ln ipupdate "$script"-release/ipupdate
+	ln ipupdate.conf.sample "$script"-release/ipupdate.conf.sample
+	ln README.md "$script"-release/README.md
+}
+
+if [ ! -x "$repmakeself/makeself.sh" ]; then
+	echo "$repmakeself inaccessible"
+	exit 1
+fi
+
+if [ ! -d "$script-release" ]; then
+	makedir
+fi
+
+temp=$( < ipupdate )
+temp=${temp#*version=}
+read -r version <<< "$temp"
+
+#~ runname="$script-$version"
+runname="$script.run"
+
+echo -e "\\n make .run $script version $version\\n"
+
+#~ makeself.sh [args] archive_dir file_name label startup_script [script_args]
+#~ "$repmakeself/makeself.sh" --notemp --follow ipupdate-release/ ipupdate.run 'ipupdate in ipupdate-release/' ./exit_makeself
+"$repmakeself/makeself.sh" --notemp --follow "$script-release/" "$runname" "$script in $script-release/" ./exit_makeself
+echo

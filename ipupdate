@@ -1,0 +1,1102 @@
+#!/bin/bash
+
+##### license LPRAB/WTFPL
+#  auteur: sdeb
+#    contributeurs: kyodev, naguam
+#####
+
+version=1.0.0
+script="ipupdate"
+date="31/05/2018"
+contact="irc:freenode.net##sdeb"
+
+	# $1 message to display
+die(){		# 31/05/2018
+	echo "  Fatal: $1"
+	echo
+	exit 1
+}
+
+	# détermination dirname et basename avec suivi lien éventuel, assigne $dirscript & $basescript
+# shellcheck disable=SC2034
+f__basedirname(){		# 27/04/2018
+
+	dirscript=$( readlink -f "$0" )		# /path/from/root/scriptname (absolute path)
+	basescript=${dirscript##*/}			# scriptname
+	dirscript=${dirscript%/*}			# /path/from/root/
+}
+
+	# test connexion, [$1=-4|-6] protocole -4 par défaut, return 0|1
+f__cnx(){		# 29/05/2018
+	local proto="-4" cmds cmd ip servers
+
+	if [[ "$1" == '-6' || "$1" == '6' ]]; then
+		proto="-6"
+		servers=(
+			2606:4700:4700::1111	# cloudfare
+			2001:7fd::1				# root K RIPE
+			2001:500:a8::e			# root E nasa 
+			2001:4860:4860::8888	# google
+		)
+	else
+		servers=(
+			1.1.1.1					# cloudfare
+			193.0.14.129			# root K RIPE
+			192.203.230.10			# root E nasa 
+			8.8.8.8					# google
+		)
+	fi
+
+	type -p ping  &>/dev/null && cmds+=( "ping -c1 -w1 -U " )
+	type -p fping &>/dev/null && cmds+=( "fping --retry=0 --elapsed --stats " )
+	if (( ${#cmds[@]} == 0 )); then
+		echo "f__cnx(): no available commands" >&2
+		return
+	fi
+
+	for cmd in "${cmds[@]}"; do
+		for ip in "${servers[@]}" ; do 
+			$cmd "$proto" "$ip" &>/dev/null && return 0
+		done
+	done
+	if nc -4 -h; then
+		for ip in "${servers[@]}" ; do 
+			nc "$proto" -z -w1 "$ip" 53 &>/dev/null && return 0		# paquet netcat-traditional debian obsolete, ne gere pas protocoles, sauf si netcat-openbsd
+		done
+	fi
+	return 1
+}
+
+f__color(){		# 29/05/2018
+
+	if type -p tput &>/dev/null && tput setaf 1 &>/dev/null; then
+		 #~ YELLOW=$( tput setaf 3 )		# ?
+		  GREEN=$( tput setaf 2 )		# ok
+		   BLUE=$( tput setaf 4 )		# info
+			RED=$( tput setaf 1 )		# alerte
+			STD=$( tput sgr0 )			# retour "normal"
+	else 
+		#~ YELLOW=$'\033[0;33m'		# ?
+		 GREEN=$'\033[0;32m'		# ok
+		  BLUE=$'\033[0;34m'		# info
+		   RED=$'\033[0;31m'		# alerte
+		   STD=$'\033[0m'			# standard
+	fi
+}
+
+	# fichier log limité à 10 000 octets, <message> [--file <fichier de logs>] [--disp] [--error] [--mail ] [--mailtosend ]
+	# par défaut fichier: $script_logs, si --mail envoi message dans send_mail()
+	# si --disp affiche aussi le message, si --error affiche aussi le message mais dans stderr
+f__log(){		# 17/05/2018	~~SPECIFIQUE 
+	local file="$script_logs" mail display text
+
+	script_logs=${script_logs:=$0.log}
+	size_log=${size_log:=10000}		# logs size
+	while (( $# )) ; do
+		case "$1" in
+			--disp | --dsp ) display="todo" ;;
+			--error ) error="todo" ;;
+			--file ) file="$2"; shift ;;
+			--mailtosend ) mailtosend="todo" ;;
+			--mail ) mail="todo" ;;
+			* ) text="$1" ;;
+		esac
+		shift
+	done
+	if [ ! -e "$file" ]; then
+		touch "$file" 2>/dev/null
+		chmod 666 "$file" 2>/dev/null
+	fi
+	[ ! -e "$file" ] && file="/dev/null"		# droits insuffisants précédemment pour fichier, redirection dans null
+		# gestion taille, maxi 10 000 octets, rotation sur un fichier
+	if [ "$( stat -c %s  "$file" )" -ge "$size_log" ]; then
+		cp "$file" "$file.1" 2>/dev/null
+		echo -n  > "$file"
+	fi
+	[ "$mail" ] && send_mail "$text"
+	[ "$mailtosend" ] && send_mail "$text" --tosend
+	[ "$display" ] && echo -e "$text"
+	[ "$error" ] && echo -e "$text" >&2
+	f__trim "text"
+	echo -e "$( date '+%d/%m/%Y %H:%M:%S %z' )\\t$text" >> "$file"
+}
+
+	# $1=bas-haut (ex: 0-5), nombre aléatoire entre bas & haut inclus, si [$2=seq] liste avec départ aléatoire
+f__random(){		# 25/04/2018 2
+	local bas haut max rand start sequence xyz
+
+	[ "${1//*-*}" ] && return 1		# bad format, no -
+	bas=${1%-*}
+	haut=${1#*-}
+    max=$(( 32768 / ( haut + 1 ) * ( haut + 1 ) )) 
+    while (( (rand=RANDOM) >= max )); do : ; done
+	if [ "$2" == "seq" ]; then
+		#~ while (( (start=RANDOM) >= max )); do 
+		#~ :
+		#~ done
+		start=$(( bas + ( rand % (haut+1-bas) ) ))
+		for (( xyz=start; xyz <= haut; xyz++ )); do echo "$xyz"; done 
+		(( (start-bas) > 0 )) && for (( xyz=bas; xyz < start; xyz++ )); do echo "$xyz"; done
+		return
+	fi
+	echo $(( bas + ( rand % (haut+1	-bas) ) ))
+}
+
+	# $1=NOM de la variable à trimer (variable et non $variable), [$2=left|right|all], all si vide
+f__trim(){		# 07/03/2018
+	local trim=${!1}
+
+	[[ "$2" == right || "$2" == all || -z "$2" ]] && trim="${trim%${trim##*[^[:space:]]}}"		# fin right
+	[[ "$2" == left  || "$2" == all  || -z "$2" ]] && trim="${trim#${trim%%[^[:space:]]*}}"		# début left
+	eval "$1=\"$trim\""
+}
+
+	# $1 hostname à tester, [$2|3=AAAA|A] [$2|3=@[master server]], affichage ip zones dns, type A défaut, return > 0 if error
+	# hostname obligatoire en $1, quand @ seul: recherche master, master: vérif dans serveur SOA, {host & dig possibles}
+f_ip_dns(){		# 16/05/2018
+	local hostname="$1" type='A' master ip_dns 
+
+	shift
+	while (( $# )) ; do
+		case "$1" in
+			AAAA | aaaa )	type=AAAA ;;
+			@* ) master=${1#@}; [ -z "$master" ] && master=$( f_ip_master "$hostname" ) ;; 
+		esac
+		shift
+	done
+	if type -p host &>/dev/null; then	# host est capable de sortir l'ip de la passerelle?!
+		mapfile -t -d' ' <<< "$( LC_ALL=C host -t "$type" "$hostname" "$master" 2>/dev/null )"	# 1er esssai avec serveur autoritaire
+		[[ ! ${MAPFILE[*]} =~ not\ found  ]] && ip_dns=${MAPFILE[-1]%$'\n'}
+		[[ -z "$ip_dns" && "$master" ]] && mapfile -t -d' ' <<< "$( LC_ALL=C host -t "$type" "$hostname" 80.67.169.12 2>/dev/null )"	# si no result, 2e essai ns0.fdn.fr
+		[[ ! ${MAPFILE[*]} =~ no\ [A]*\ record && ! ${MAPFILE[*]} =~ not\ found ]] && ip_dns=${MAPFILE[-1]%$'\n'}
+		[[ -z "$ip_dns" && "$master" ]] && mapfile -t -d' ' <<< "$( LC_ALL=C host -t "$type" "$hostname" 2>/dev/null )"	# si no result, 3e essai simple
+		[[ ! ${MAPFILE[*]} =~ no\ [A]*\ record && ! ${MAPFILE[*]} =~ not\ found ]] && ip_dns=${MAPFILE[-1]%$'\n'}
+	fi
+	if type -p dig &>/dev/null && [ -z "$ip_dns" ] ; then
+		[ "$master" ] && master="@$master"
+		ip_dns=$( LC_ALL=C dig +short +timeout=1 +retry=1 "$hostname" "$type" "$master" 2>/dev/null )
+		[ -z "$ip_dns" ] && ip_dns=$( LC_ALL=C dig +short +timeout=1 +retry=1 "$hostname" "$type" @80.67.169.12 2>/dev/null )	# ns0.fdn.fr
+		[ -z "$ip_dns" ] && ip_dns=$( LC_ALL=C dig +short +timeout=1 +retry=1 "$hostname" "$type" 2>/dev/null )
+	fi
+	if ! type -p host &>/dev/null && ! type -p dig &>/dev/null; then
+		die "  f_ip_dns(): la commande host, ou dig, doit être disponible, installer les paquets en conséquence" >&2
+	fi
+	[ -z "$ip_dns" ] && return 1
+	echo "$ip_dns"
+}
+
+	# $1 hostname, détermine domaine de second niveau 
+f_ip_master(){		# 16/05/2018
+	local domain root
+
+	domain=${1%.*}			# 1er terme final
+	domain=${domain%.*}		# 2e terme final
+	domain=${1#$domain.}	# domaine (2 derniers termes)
+	if type -p host &>/dev/null; then
+		mapfile -t -d' ' <<< "$( LC_ALL=C host -t SOA "$domain" 2>/dev/null )"
+		[[ ! ${MAPFILE[*]} =~ not\ found ]] && root=${MAPFILE[4]%\.}
+	fi
+	if type -p dig &>/dev/null || (type -p dig &>/dev/null && [ -z "$root" ]); then
+		root=$( LC_ALL=C dig "$domain" SOA +short 2>/dev/null )
+		root=${root%%\. *}
+	else
+		echo "  f_ip_master(): la commande host, ou dig, doit être disponible, installer les paquets en conséquence" >&2
+	fi
+	[ -z "$root" ] && return 1
+	echo "$root"
+}
+
+	# $x:[-4|-6] (-4 par défaut), $x:[device], affiche ip privée, retourne 1 si non trouvé
+	# si device non fourni ou non présent, recherche premier device (en/wl) connecté
+f_ip_priv(){		# 15/05/2018
+	local proto='-4' device ip_priv
+
+	while (( $# )) ; do
+		case "$1" in
+			-6 | 6 ) proto='-6' ;;
+			-4 | 4 ) proto='-4' ;;
+			display ) display='yes' ;;
+			* )  device="$1" ;;
+		esac
+		shift 
+	done
+	ip_priv=$( ip -o "-$proto" address show "$device" 2>/dev/null | awk '!/fe80:/{ sub(/\/.*/,"",$4); printf "%s",$4 }' )
+	if [ "$ip_priv" ]; then
+		echo "$ip_priv"
+		return 0
+	fi
+	for i in /sys/class/net/en* /sys/class/net/wl*; do	# en (ethernet) sl (serial line IP (slip)) wl (wlan) ww (wwan)
+		i=${i##*\/}
+		ip_priv=$( ip -o "-$proto" address show "$i" 2>/dev/null | awk '!/fe80:/{ sub(/\/.*/,"",$4); printf "%s",$4 }' )
+		[ "$ip_priv" ] && break
+	done
+	if [ -z "$ip_priv" ]; then
+		return 1
+	else
+		echo "$ip_priv"
+	fi
+}
+
+	# $1 [-4]|-6, par défaut -4, affiche ip pub, return 1 on failure, requiert f__cnx & f_ip_validate & f__random & f__log
+f_ip_pub(){		# 17/05/2018
+	local proto="-4" ip_pub base_size cmd sequence xyz server user_agent="Mozilla/5.0 Firefox"
+	declare -a base cmds raw4 raw6 dns4 dns6
+
+	{	# ip servers
+		raw4=(
+			v4.ident.me					# raw	ip4 only
+			ipv4.whatismyip.akamai.com	# raw	ip4 only
+			alma.ch/myip.cgi			# raw	ip4 only
+			api.infoip.io/ip			# raw	ip4 only
+			api.ipify.org				# raw	ip4 only
+			myip.dnsdynamic.org			# raw	ip4 only
+			ipecho.net/plain			# raw	ip4 only
+			ipinfo.io/ip				# raw	ip4 only
+			eth0.me						# raw	ip4 only
+			# checkip.amazonaws.com		# raw 	ip4 only			lent O4/2018
+			#~ ifconfig.me/ip			# raw	ip4 only			pas fiable
+		)
+
+		raw6=(
+			v6.ident.me					# raw, ip6 defaut
+			ipv6.whatismyip.akamai.com	# raw, ip6 defaut
+			canhazip.com				# raw, ip6 defaut
+			ip.tyk.nu					# raw, ip6 defaut
+			myexternalip.com/raw		# raw, ip6 defaut			parfois ip4
+			smart-ip.net/myip			# raw, ip6 defaut			! requiert user-agent
+			diagnostic.opendns.com/myip	# raw, ip6 defaut
+			icanhazip.com				# raw, ip6 defaut
+			wgetip.com					# raw, ip6 defaut
+			wtfismyip.com/text			# raw, ip6 defaut
+			l2.io/ip					# raw, ip6 defaut
+			tnx.nl/ip					# raw, ip6 defaut
+			bot.whatismyipaddress.com	# raw, ip6 defaut 			pb parfois sort ip4
+			#~ ipof.in/txt				# raw, ip6 defaut 			NRP
+			#~ ident.me					# raw, ip6 defaut
+		)
+
+		dns4=(
+			"A myip.opendns.com @resolver1.opendns.com"
+			"A myip.opendns.com @resolver2.opendns.com"
+			"A myip.opendns.com @resolver3.opendns.com"
+			"A myip.opendns.com @resolver4.opendns.com"
+			"A whoami.akamai.net @ns1-1.akamaitech.net"
+		)
+
+		dns6=(
+			"AAAA myip.opendns.com  @resolver1.ipv6-sandbox.opendns.com"
+			"AAAA myip.opendns.com  @resolver2.ipv6-sandbox.opendns.com"
+			"TXT  o-o.myaddr.l.google.com  @ns1.google.com"
+		)
+	}
+
+	[[ "$1" == '-6' || "$1" == '6' ]] && proto="-6"
+
+	type -p host &>/dev/null && cmds+=( "host -R0 -W1 -t " )		# deprecated
+	type -p dig &>/dev/null  && cmds+=( "dig +short +timeout=1  +retry=1 " )
+	type -p wget &>/dev/null && cmds+=( "wget --user-agent=$user_agent --quiet --timeout=1 --tries=1 -o /dev/null -O - " )
+	type -p curl &>/dev/null && cmds+=( "curl --silent --location --retry 0 --max-time 1 " )
+	if (( ${#cmds[@]} == 0 )); then
+		echo "f_ip_pub(): no available commands" >&2
+		return
+	fi
+
+	for cmd in "${cmds[@]}"; do
+		if   [[ "$proto" == '-4' && "$cmd" =~ ^(host|dig) ]] ; then 
+			base=( "${dns4[@]}" )
+		elif [[ "$proto" == '-6' && "$cmd" =~ ^(host|dig) ]] ; then 
+			base=( "${dns6[@]}" )
+		elif [[ "$proto" == '-4' && "$cmd" =~ ^(wget|curl) ]] ; then 
+			base=( "${raw4[@]}" )
+		elif [[ "$proto" == '-6' && "$cmd" =~ ^(wget|curl) ]] ; then 
+			base=( "${raw6[@]}" )
+		fi
+		base_size=$(( ${#base[@]} - 1 ))			# array index 0
+		sequence=$( f__random "0-$base_size" seq )	# range: 0 to base_size
+		while read -r xyz ; do
+			mapfile -t -d' ' server <<< "${base[$xyz]} )"
+			if ! f__cnx "$proto"; then
+				continue							# no connnection, continue
+			fi
+			[[ "$cmd" =~ ^host ]] && server=( "${server[@]//@}" )
+			ip_pub=$( $cmd "${server[@]}" )
+			ip_pub=${ip_pub##*has address }			# extraction command host
+			ip_pub=${ip_pub##*has IPv6 address }	# extraction command host
+			ip_pub=${ip_pub#*\"}					# extraction o-o.myaddr.l.google.com
+			ip_pub=${ip_pub%\"*}					# extraction o-o.myaddr.l.google.com
+			f_ip_validate "$1" "$ip_pub" || unset ip_pub
+			[ "$ip_pub" ] && break 2			# exit if valid ip
+		done <<< "$sequence" 
+	done
+	if [ -z "$ip_pub" ]; then
+		if type -t f__log &>/dev/null && ! f__cnx "$proto" ; then			# f__log() exists & no connection
+			 f__log --error "f_ip_pub(): no connection"
+		fi
+		return 1
+	fi
+	echo "$ip_pub"
+}
+
+	# [-4|-6] protocole par défaut -4, IP, return 0|1|2, 1 ip invalide, 2 ipv4 privée
+f_ip_validate(){		# 17/05/2018
+	local proto="-4" ip reg regex regex_priv="zzz"		#ip6: https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses ()https://stackoverflow.com/a/17871737/9580455)
+
+	while (( $# )) ; do
+		case "$1" in
+			-6 | 6 ) proto='-6' ;;
+			-4 | 4 ) proto='-4' ;;
+			* )  ip="$1" ;;
+		esac
+		shift 
+	done
+
+	if [[ "$proto" == "-6" ]]; then
+		regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
+		proto="-6"
+	else
+		reg="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"  
+		regex="^$reg\\.$reg\\.$reg\\.$reg$"
+		regex_priv="^(127\\.$reg|10\\.$reg|172\\.(1[6-9]|2[0-9]|3[0-1])|192\\.168)\\.$reg\\.$reg$"
+	fi
+	if [[ "$ip" =~ $regex_priv ]]; then
+		return 2
+	elif [[ ! "$ip" =~ $regex ]]; then
+		return 1
+	fi
+}
+
+	# $1 téléchargement déjà fait, assigne $online_version
+script_get_version(){		# 12/05/2018
+	local temp  
+
+	if [ "$1" ]; then
+		temp="$1"		# version fichier
+	else
+		! temp=$( curl --silent --show-error "$url_script" ) && die "erreur obtention version script en ligne"
+	fi
+	temp=${temp#*version=}
+	read -r online_version <<< "$temp"
+	[[ "${online_version:0:1}" =~ [0-9] ]] || unset online_version
+	[ "$1" ] && return 0
+	echo -e "  version en ligne (fake): $online_version \\n"
+}
+
+script_install(){		# 27/05/2018
+	local file
+
+	[ "$EUID" -ne 0 ] && die "installation must be made in root"
+	[[ "$dirscript" == "/usr/bin" || "$dirscript" == "/opt/bin" ]] && die "this script his already installed"
+	[ -f "$dirscript/$script.conf" ] || die "$dirscript/$script.conf must be exist for installation"
+	[ -f "/etc/crontab" ] || die "no /etc/crontab to use"
+		# conf
+	cp "$dirscript/$script.conf" "/etc/$script.conf"
+	chmod 600 "/etc/$script.conf"
+	[ -e "$fileDev" ] || rm -f "$dirscript/$script.conf"		# file filedev? if not, deletion
+		# script
+	mkdir -p /opt/bin/
+	script_get_version "$( < "$dirscript/$script" )"
+	cp "$dirscript/$script" "/opt/bin/$script"
+	chmod 775 "/opt/bin/$script"
+	[ -e "$fileDev" ] || rm -f "$dirscript/$script"				# file filedev? if not, deletion
+	ln -s "/opt/bin/$script" "/usr/bin/$script" &>/dev/null
+		# préparation des logs
+	for file in "${logs_base[@]}"; do
+		if [ -e "$dirscript/${!file#$logs_path/}" ]; then		# si logs in the current directory, we use them
+			mv "$dirscript/${!file#$logs_path/}" "${!file}"
+		fi
+		touch "${!file}"
+		chmod 666 "${!file}"		# rw pour tous
+	done
+	f__log "$script installé en version $online_version" --disp
+	if [ ! -w "/etc/crontab" ]; then
+		f__log "crontab inaccessible,"
+		die "crontab inaccessible, la gestion du lancement périodique toutes les 5 mn doit donc être faite manuellement"
+	fi
+		# cron
+	grep -q "# $script installation" /etc/crontab && return		# inscription déjà existante
+	{ 
+		echo "# $script installation"
+		#~ echo "*/5 * * * *  root   /opt/bin/$script >/dev/null 2>&1"
+		echo "*/5 * * * *  root   /opt/bin/$script >/dev/null"
+		echo "#"
+	} >> /etc/crontab
+}
+
+script_uninstall(){		# 27/05/2018
+
+	[ "$EUID" -ne 0 ] && die "fatal error: the uninstallation must be made in root"
+	[ -f "/opt/bin/$script" ] || die "script not installed"
+	[ -f "/etc/crontab" ] || die "no /etc/crontab to use"
+		# suppression script, conf, les log sont laissés en place
+	rm -f "/etc/$script.conf"
+	rm -f "/opt/bin/$script"
+	unlink "/usr/bin/$script" &>/dev/null
+		# désinscription crontab
+	[ ! -w "/etc/crontab" ] && die "pas de crontab accessible"
+	sed -i "/# $script installation/d" /etc/crontab
+	sed -i  "/.* root [[:blank:]]*\\/opt\\/bin\\/$script/d" /etc/crontab
+	f__log "$script désinstallé" --disp
+}
+
+script_upgrade(){		# 31/05/2018
+
+	if [ ! -w "$dirscript/$script" ]; then
+		[ "$EUID" -ne 0 ] && die "fatal error: the uninstallation must be made in root"
+	fi
+	[[ "$dirscript" =~ /opt/bin  && "$EUID" -ne 0 ]] && die "upgrade must be made in root"
+	! curl --silent --show-error -o "/tmp/$script" "$url_script" && die "erreur chargement script (curl $?)"
+	if grep -q '^### END CONTROL' "/tmp/$script"; then 
+		script_get_version "$( < "/tmp/$script" )"
+		mv "/tmp/$script" "$dirscript/$script"
+		chmod 775 "$dirscript/$script"
+		f__log "$script mis à jour en version $online_version" --disp
+	else
+		die "échec update, téléchargement incomplet"
+	fi
+	rm "/tmp/$script" 2>/dev/null
+	echo
+}
+
+	# construction mail, options: --date --echo --hl --init --nl --subject <message> --tosend --final
+send_mail(){		# 27/05/2018
+	local send_mail dest
+
+	while (( $# )) ; do
+		case "$1" in 
+			--date ) mail_build_body+="$( date '+%d/%m/%Y %H:%M:%S %z' ) \\n" ;;
+			--echo ) mail_build_body+="$2 \\n"; echo "$2"; shift ;;
+			--hl   ) mail_build_body+="-------\\n" ;;
+			--init ) mail_build_subject="Subject: $mail_subject" ;;
+			--ip   ) mail_build_ip+="$2 \\n"; shift ;;
+			--nl   ) mail_build_body+="\\n" ;;
+			--final   ) send_mail+="todo" ;;
+			--subject ) mail_build_subject+="$2 "; shift ;;
+			--tosend  ) mail_build_tosend="OK" ;;				# flag mail à envoyer
+			* )         mail_build_body+="$1 \\n" ;;
+		esac
+		shift
+	done
+
+	[ -z "$send_mail" ] && return
+	[ -z "$mail_build_tosend" ] && return
+
+		# formation mail et envoi
+	for dest in "${mail_to[@]}" ; do
+		send_mail="From: $mail_from \\n"
+		send_mail+="To: $dest \\n"
+		send_mail+="MIME-Version: 1.0 \\n"
+		send_mail+="Content-Transfer-Encoding: 8bit \\n"
+		send_mail+="Content-Type: text/plain;charset=utf-8 \\n"
+		send_mail+="$mail_build_subject \\n\\n"
+		send_mail+="$mail_build_ip \\n"
+		send_mail+="$mail_build_body \\n\\n"
+		send_mail+="$script v$version \\n"
+		echo -e "$send_mail" > "/$mails_queue/${script}_mail_$dest"
+		chmod 666 "/$mails_queue/${script}_mail_$dest"
+	done
+}
+
+	# traitement mails en queue d'attente
+send_mail_queue(){		# 29/05/2018
+	local smtp_complement mail queue log
+
+		# formation cmd curl
+	smtp_port=":${smtp_port#:}"
+	if [ "$smtp_proto" == "smtps" ]; then
+		smtp_complement+=( "--ssl-reqd " )
+	fi
+	if [ "$smtp_user" ]; then
+		smtp_complement+=( "--user $smtp_user:$smtp_pass" )
+	fi
+	if [ -z "$smtp_from" ]; then
+		smtp_from="$mail_from"
+	fi
+	shopt -s nullglob
+	queue=( "$mails_queue/${script}_mail_"* )
+	shopt -u nullglob
+	for mail in "${queue[@]}" ; do
+		while read -r ; do
+			if [[ "$REPLY" =~ ^To: ]]; then
+				dest=${REPLY#To: }
+			fi
+		done < "$mail"
+		if curl "${curl_debug[@]}" --silent --show-error --mail-from "$smtp_from" --mail-rcpt "$dest" \
+					"${smtp_complement[@]}" --url "$smtp_proto://$smtp_srv$smtp_port/$mail_from" --upload-file "$mail"; then
+			log="mail envoyé "
+			rm "$mail"
+		else
+			log="échec mail (curl $?)"
+		fi
+		f__trim "dest"
+		f__log "$log $dest\\t$origin" --disp
+	done
+}
+
+	# variable[:length] variables à suivre, [:length] taille fixe, sinon taille variable, log si changement in file$fileTrack
+track(){		# 17/05/2018
+	local options=( "$@" ) ligne save option length 
+
+	size_track=${size_track:=10000}		# tracks size
+		# création fichier et droits rw pour tous
+	if [ ! -e "$fileTrack" ]; then
+		touch "$fileTrack" 2>/dev/null
+		chmod 666 "$fileTrack" 2>/dev/null
+		todohead="ok"
+	fi
+		# taille maxi, rotation sur un fichier
+	[ ! -e "$fileTrack" ] && file="/dev/null"		# droits insuffisants précédemment pour fichier, redirection null, pas d'erreur
+	if [ "$( stat -c %s  "$fileTrack" )" -ge "$size_track" ]; then
+		cp "$fileTrack" "$fileTrack.1" 2>/dev/null
+		todohead="ok"
+	fi
+		# header if necessary
+	if [ "$todohead" ]; then
+		for option in "${options[@]}"; do
+			length=${option#*:}
+			[[ ! "$length" =~ ^[0-9]+$ ]] && length=0
+			option=${option%:*}
+			save+=$( printf "%-${length}s" "$option" )
+		done
+		echo "${save}date" >> "$fileTrack"
+	fi
+		# reading last record
+	while read -r; do ligne="${REPLY% * * *}"; done < "$fileTrack" 
+		# search for a change
+	unset save
+	for option in "${options[@]}"; do
+		length=${option#*:}
+		[[ ! "$length" =~ ^[0-9]+$ ]] && length=0
+		option=${option%:*}
+		save+=$( printf "%-${length}s" "${!option}" )
+	done
+		# if change, writing to file
+	if [[ $ligne != "${save% }" ]]; then
+		echo "$save$( date '+%d/%m/%Y %H:%M %z' )" >> "$fileTrack"
+	fi
+}
+
+upd_clear(){		# 27/05/2018
+	local service action
+
+	send_mail "effacement" --date
+	for service in "${!dynDns[@]}"; do
+		send_mail --nl --nl --echo "$service (${dynDns[$service]})" --hl
+		action="clear"
+		unset update_ip curl_return ret ret_text
+		if "update_${service}" ; then
+			f__log "  $update_ip in $service" --disp --mailtosend		# log ipv4 publique, ipv6 & origin
+		else
+			[ "$curl_return" ] && curl_return+=','
+			f__log "error clear on $service: $curl_return $ret $ret_text" --error --mailtosend	# log retour publication si erreur
+		fi
+	done
+	[ "$mail_enable" == true ] && send_mail --final
+}
+
+upd_ddns(){		# 30/05/2018
+	local options cnx priv4 service flag_file flag log dns_ipv4 dns_ipv6 todo
+
+	if (( protocol == -4 || protocol == -46 )); then
+		f__cnx "-4" && cnx="ok" || cnx="KO"
+	else
+		f__cnx "-6" && cnx="ok" || cnx="KO"
+	fi
+	[ "$cnx" ==  "KO" ] && return 1			# sortie si no connexion
+
+	if [ "$tracking" == "true" ]; then
+		(( protocol == -4 || protocol == -46 )) && priv4=$( f_ip_priv "$ifname" -4 )
+		(( protocol == -4 || protocol == -46 )) && options+=( "ipv4:16" )
+		(( protocol == -6 || protocol == -46 )) && options+=( "ipv6:40" )
+		options+=( "cnx:4" )
+		(( protocol == -4 || protocol == -46 )) && options+=( "priv4:16" )		# log dans fichier track quand changement
+		track "${options[@]}"
+		echo "$cnx $priv4" >/dev/null		# fake for shellcheck SC2034
+	fi
+
+	if (( protocol == -4 || protocol == -46 )); then
+		ipv4=$( f_ip_pub -4 )
+	fi
+	if (( protocol == -6 || protocol == -46 )); then
+		ipv6=$( f_ip_priv "$ifname" -6 )
+	fi
+
+	if [[ "$origin" =~ boot && ! -e "/tmp/${script}_flag-boot" ]]; then
+		send_mail --nl "$origin" --tosend
+		echo "$origin" > "/tmp/${script}_flag-boot"
+	else
+		send_mail --nl --date "$origin" 
+	fi
+
+		# publication
+	for service in "${!dynDns[@]}"; do
+		send_mail --nl --nl --echo "$service (${dynDns[$service]})" --hl
+		unset todo
+
+		flag_file="/tmp/${script}_${service}_ip_pub"		# fichier témoin pour stock error critic éventuelle
+			# fichier témoin inexistant au boot ou vide
+		if [ ! -e "$flag_file" ]; then
+			touch "$flag_file"				# création
+			chmod 666 "$flag_file" 			# droits rw pour tous
+		fi
+
+			# traitement erreur critique précédente
+		flag=$( < "$flag_file" )
+		if [[ "$flag" =~ critic ]]; then
+				# temporisation 1 heure et ré-essai. donc si fichier plus ancien d'une heure, effacement pour ré-essai 
+				# donc avertissement critique par mail toutes les heures si erreur persistante. noip pecifications
+			if (( ( $(date +%s) - $(date +%s -r "$flag_file") ) >= 3600 )); then
+				rm "$flag_file"
+			elif [[ ! "$origin" =~ forcing ]]; then
+				continue		# service suivant
+			fi
+		fi
+			# dynDns ipv4
+		if (( protocol == -4 || protocol == -46 )) && [[ "${dynDns4[*]}" =~ $service ]]; then		# ipv4 active
+			dns_ipv4=$( f_ip_dns "${dynDns[$service]}" A @"${namesServer[$service]}" )
+			f_ip_validate -4  "$dns_ipv4" || unset dns_ipv4
+			if [[ "$dns_ipv4" != "$ipv4" ]]; then
+				todo+="ipv4 "
+			fi
+		fi
+			# dynDns ipv6
+		if (( protocol == -6 || protocol == -46 )) && [[ "${dynDns6[*]}" =~ $service ]]; then		# ipv6 active
+			dns_ipv6=$( f_ip_dns "${dynDns[$service]}" AAAA @"${namesServer[$service]}" )
+			f_ip_validate -6  "$dns_ipv6" || unset dns_ipv6
+			if [[ "$dns_ipv6" != "$ipv6" ]]; then
+				todo+="ipv6 "
+			fi
+		fi
+			# one update every two weeks 
+		if (( ( $(date +%s) - $(date +%s -r "$flag_file") ) >= ( 14 * 24 * 3600 ) )); then		# plus de 14 jours
+			todo+="2wks "
+			origin+="forced update every two weeks "
+		fi
+			# forcing
+		if [[ "$origin" =~ forcing ]]; then
+			todo+="all "
+		fi
+
+			# si $todo vide, rien à faire
+		if [[ -z "$todo" ]]; then
+			continue		# service suivant
+		fi
+
+			# update ddns et traitement erreurs
+		unset update_ip curl_return ret ret_text
+		if "update_${service}" ; then
+			[ "$update_ip" ] && update_ip="update $update_ip"
+			f__trim "update_ip"
+			echo "$update_ip" > "$flag_file"									# inscription dans fichier témoin
+			f__log "  $service: $update_ip\\t$origin" --disp --mailtosend		# log ipv4 publique, ipv6 & origin
+		else
+			if [ "$?" -eq 2 ]; then			# fatal
+				flag="critical error"
+				echo "$flag" > "$flag_file"
+				send_mail --echo "$flag: check dynamic Dns account, erase file $flag_file and test. " --subject "$flag" --tosend
+			fi
+			[ "$curl_return" ] && curl_return+=','
+			f__log "  $service: $curl_return $ret $ret_text" --error --mailtosend	# log retour publication si erreur
+		fi
+	done
+	touch "$script_logs"		# datage fichier témoin 
+	(( protocol == -4 || protocol == -46 )) && [ -z "$ipv4" ] && ipv4=$( f_ip_pub -4 )				# 2e tentative éventuelle
+	(( protocol == -6 || protocol == -46 )) && [ -z "$ipv6" ] && ipv6=$( f_ip_priv "$ifname" -6 )	# 2e tentative éventuelle
+	[ "$ipv4" ] && send_mail --ip "ipv4: $ipv4" 
+	[ "$ipv6" ] && send_mail --ip "ipv6: $ipv6"
+	[ "$mail_enable" == true ] && send_mail --final
+}
+
+update_duckdns(){		# 29/05/2018
+	local url tmpFile="/tmp/curl_$script-duckdns"
+
+	[ "$curl_debug" ] && rm -f "$tmpFile"
+	touch "$tmpFile"
+	chmod 666 "$tmpFile"
+
+	url="${duckdns[urlUpdate]}?domains=${dynDns[duckdns]}&token=${duckdns[token]}&verbose=true"
+	if [ "$action" == "clear" ]; then
+		url+="&clear=true"	# erase ipv4 & ipv6
+		update_ip="clear"
+	else
+		case "$todo" in
+			*ipv4* | *2wks* | *all* ) url+="&ip=$ipv4"  ; update_ip+="ipv4 " ;;&
+			*ipv6* ) url+="&ipv6=$ipv6"; update_ip+="ipv6 " ;;&
+		esac
+		[ "$curl_debug" ] &&  echo "  url duckdns: $url"
+	fi
+
+	if ! ret=$( curl "${curl_debug[@]}" --silent --show-error --user-agent "$user_agent" "$url"  2> "$tmpFile" ); then
+		curl_return="curl error $curl_return"
+	fi
+	ret=${ret//$'\n'/ }
+	[ "$curl_debug" ] && echo "  the curl session is visible in $tmpFile"
+	if [ "$curl_return" ]; then
+		return 1
+	fi
+}
+
+update_dynu(){		# 29/05/2018
+	local userAgent pass url failure tmpFile="/tmp/curl_$script-dynu"
+
+	[ "$curl_debug" ] && rm -f "$tmpFile"
+	touch "$tmpFile"
+	chmod 666 "$tmpFile"
+
+	url="${dynu[urlUpdate]}?hostname=${dynDns[dynu]}"
+	[ "${dynu[multi_domain]}" ] && url="${dynu[urlUpdate]}?hostname=${dynu[multi_domain]}"
+	[ "${dynu[location]}" ]     && url="${dynu[urlUpdate]}?location=${dynu[location]}"
+	if [ "$action" == "clear" ]; then
+		url+="&offline=yes"
+		update_ip="clear"
+	else
+		case "$todo" in
+			*ipv4* | *2wks* | *all* ) url+="&myip=$ipv4"  ; update_ip+="ipv4 " ;;&
+			*ipv6* ) url+="&myipv6=$ipv6"; update_ip+="ipv6 " ;;&
+		esac
+	fi
+	[ "$curl_debug" ] &&  echo "  url dynu: $url"
+	pass="${dynu[userName]}:${dynu[passw]}"
+
+	if ! ret=$( curl "${curl_debug[@]}" --silent --show-error --user-agent "$user_agent" --user "$pass" "$url"  2> "$tmpFile" ); then
+		[ "$curl_return" ] && curl_return="curl error $curl_return" || curl_return="update in error"
+	fi
+	case "$ret" in
+		911* ) 			ret_text="Error: scheduled maintenance." ;;
+		abuse* ) 	failure="critic"; ret_text="Error: username is blocked due to abusive behaviour." ;;
+		badauth* )	failure="critic"; ret_text="Error: failed authentication, check all parameters (authentication, hostname...)" ;;
+		dnserr* )		ret_text="Error on the server side" ;;
+		!donator* )	failure="critic"; ret_text="Error: this functionality is only available to members." ;;
+		nohost* ) 	failure="critic"; ret_text="Error: hostname/username not found" ;;
+		notfqdn*  )	failure="critic"; ret_text="Error: the hostname is not a valid fully qualified hostname." ;;
+		numhost*  )	failure="critic"; ret_text="Error: too many hostnames(more than 20)" ;;
+		servererror* )	ret_text="Error on the server side" ;;
+		unknow* )	failure="critic"; ret_text="Error: invalid request, bad format or invalid parameters" ;;
+	esac
+	[ "$curl_debug" ] && echo "  the curl session is visible in $tmpFile"
+	if [ "$failure" ]; then
+		return 2
+	elif [ "$curl_return" ]; then
+		return 1
+	fi
+}
+
+update_freemyip(){		# 29/05/2018
+	local url tmpFile="/tmp/curl_$script-freemyip"
+
+	[ "$curl_debug" ] && rm -f "$tmpFile"
+	touch "$tmpFile"
+	chmod 666 "$tmpFile"
+
+	url="${freemyip[urlUpdate]}?token=${freemyip[token]}&domain=${dynDns[freemyip]}&verbose=yes"
+	if [ "$action" == "clear" ]; then
+		update_ip="clear not supported"
+		return 0
+	else
+		case "$todo" in
+			*ipv4* | *2wks* | *all* ) url+="&myip=$ipv4"; update_ip+="ipv4 " ;;&
+		esac
+	fi
+	[ "$curl_debug" ] &&  echo "  url freemyip: $url"
+
+	if ! ret=$( curl "${curl_debug[@]}" --silent --show-error --user-agent "$user_agent" "$url"  2> "$tmpFile" ); then
+		curl_return="curl error $curl_return"
+	fi
+	ret=${ret//$'\n'/ }
+	[ "$curl_debug" ] && echo "  the curl session is visible in $tmpFile"
+	if [ "$curl_return" ]; then
+		return 1
+	fi
+}
+
+update_hn(){		# 29/05/2018
+	local url failure tmpFile="/tmp/curl_$script-hn"
+
+	[ "$curl_debug" ] && rm -f "$tmpFile"
+	touch "$tmpFile"
+	chmod 666 "$tmpFile"
+
+	url="https://${hn[userName]}zqj${hn[pool]}${hn[urlUpdate]}"
+	[ "$curl_debug" ] &&  echo "  url hn: $url"
+	if [ "$action" == "clear" ]; then
+		ipv4="0.0.0.0"
+		update_ip="clear"
+	else
+		case "$todo" in
+			*ipv4* | *2wks* | *all* ) update_ip+="ipv4 " ;;&
+		esac
+	fi
+
+	[ -z "$ipv4" ] && return 1
+	if ! ret=$( curl "${curl_debug[@]}" --silent --show-error --user-agent "$user_agent" \
+				--data-urlencode hostname="${dynDns[hn]}" --data-urlencode password="${hn[passw]}" \
+				--data-urlencode ipv4="$ipv4" "$url"  2> "$tmpFile" )
+	then
+		curl_return="curl error $curl_return"
+	fi
+	ret=${ret##*UPDATE_RESPONSE_CODE=}
+	ret=${ret%%</pre>*}
+	case "$ret" in 
+		*201* )	 	ret_text="Error: previous update less than 300 seconds ago." ;;
+		*202* )	 	ret_text="Error: server error." ;;
+		*205* ) failure="critic"; ret_text="Error: Password or hostname incorrect or inactive." ;;
+		*206* ) failure="critic"; ret_text="Error: Too many incoming requests from client IPv4 address." ;;
+		*207* ) failure="critic"; ret_text="Error: missing user-agent." ;;
+		*208* ) failure="critic"; ret_text="Error: account in static dns mode." ;;
+		*209* ) failure="critic"; ret_text="Error: submitted data fields rejected." ;;
+	esac
+	[ "$curl_debug" ] && echo "  the curl session is visible in $tmpFile"
+	if [ "$failure" ]; then
+		return 2
+	elif [ "$curl_return" ]; then
+		return 1
+	fi
+}
+
+update_noip(){		# 29/05/2018
+	local userAgent pass url failure tmpFile="/tmp/curl_$script-noip"
+
+	[ "$curl_debug" ] && rm -f "$tmpFile"
+	touch "$tmpFile"
+	chmod 666 "$tmpFile"
+
+	url="${noip[urlUpdate]}?hostname=${dynDns[noip]}"
+	if [ "$action" == "clear" ]; then
+		if [ "${noip[offline]}" == true ]; then
+			url+="&offline=YES"
+			update_ip="clear"
+		else
+			update_ip="clear not supported"
+			return 0
+		fi
+	else
+		case "$todo" in
+			*ipv4* | *2wks* | *all* ) url+="&myip=$ipv4" ; update_ip+="ipv4 " ;;&
+		esac
+	fi
+	[ "$curl_debug" ] &&  echo "  url noip: $url"
+	pass="${noip[userName]}:${noip[passw]}"
+	userAgent="$user_agent $contact"
+
+	if ! ret=$( curl "${curl_debug[@]}" --silent --show-error --user-agent "$userAgent" --user "$pass" "$url"  2> "$tmpFile" ); then
+		curl_return="curl error $curl_return"
+	fi
+	case "$ret" in 
+		911* ) 			ret_text="Error: scheduled maintenance." ;;
+		abuse* ) 	failure="critic"; ret_text="Error: username is blocked due to abusive behaviour." ;;
+		badauth* )	failure="critic"; ret_text="Error: failed authentication, check all parameters (authentication, hostname...)" ;;
+		dnserr* )		ret_text="Error on the server side" ;;
+		!donator* )	failure="critic"; ret_text="Error: this functionality is only available to members." ;;
+		nohost* ) 	failure="critic"; ret_text="Error: hostname/username not found" ;;
+		notfqdn*  )	failure="critic"; ret_text="Error: the hostname is not a valid fully qualified hostname." ;;
+		numhost*  )	failure="critic"; ret_text="Error: too many hostnames(more than 20)" ;;
+		servererror* )	ret_text="Error on the server side" ;;
+		unknow* )	failure="critic"; ret_text="Error: invalid request, bad format or invalid parameters" ;;
+	esac
+	[ "$curl_debug" ] && echo -e "  publish return: $ret \\nthe curl session is visible in $tmpFile"
+	if [ "$failure" ]; then
+		return 2
+	elif [ "$curl_return" ]; then
+		return 1
+	fi
+}
+
+usage(){		# 29/05/2018
+	local pluriel max length service dns_ipv4 dns_ipv6 
+
+	if (( ${#dynDns[@]} > 0 )); then pluriel="s"; else unset pluriel ; fi
+	cat <<- end
+	  usage :  $script [options]
+	
+	${BLUE}    sans option  :${STD} tous les services configurés sont vérifiés et une éventuelle nouvelle 
+	                   adresse IP est publiée si changement $RED(root requis)${STD}
+	${BLUE}        --debug  :${STD} affichage mode verbeux (publication, session smtp)
+	${BLUE}        --dev    :${STD} utilisation branche dev pour mise à jour ou n° de version 
+	${BLUE}        --service <service> :${STD} réduit les actions sur un seul <service> de DNS dynamique
+	${BLUE}    -c, --clear  :${STD} efface l'ip dans la zone DNS (ou mise en mode hors-ligne) $RED(root requis)${STD}
+	                   (voir à désinstaller ou désactiver l'exécution périodique)
+	${BLUE}    -f, --force  :${STD} force les mises à jours des DNS dynamiques $RED(root requis)${STD}
+	                    -f --service <example> forcera uniquement le service <example>
+	${BLUE}    -h, --help   :${STD} cette aide
+	${BLUE}    -i, --install:${STD} installation $RED(root requis)${STD}
+	${BLUE}    -r, --remove :${STD} désinstallation $RED(root requis)${STD}
+	${BLUE}    -u, --upgrade:${STD} provoque le chargement et le remplacement du script en place $RED(root requis)${STD}
+	${BLUE}    -v, --version:${STD} version du script en ligne et en place 
+
+	  script dir    : ${GREEN}$dirscript/${STD}
+	  conf file     : ${GREEN}$conf_location/$script.conf${STD}
+	  logs file     : ${GREEN}$script_logs${STD}
+	end
+	[ -e "$fileTrack" ] && echo "  tracking file : ${GREEN}$fileTrack${STD}"
+	echo
+	if [ -z "$conf_unavailble" ]; then
+		echo -n "  active protocols : ${BLUE}"
+		[[ "$protocol" =~ "4" ]] && echo -n "ipv4 "
+		[[ "$protocol" =~ "6" ]] && echo -n "ipv6 "
+		echo ${STD}
+		cat <<- end
+		  services dynDns possibles: ${BLUE}$dynDns_base${STD}
+		  service$pluriel dynDns actif$pluriel (ip inscrites dans la zone du service dns dynamique:
+		end
+		for max in "${!dynDns[@]}"; do
+			max="${dynDns[$max]} ($max)"
+			(( ${#max} > length )) && length=${#max}
+		done
+		for service in "${!dynDns[@]}"; do
+			if [[ "${dynDns4[*]}" =~ $service ]]; then
+				dns_ipv4=$( f_ip_dns "${dynDns[$service]}" A @"${namesServer[$service]}" )
+				f_ip_validate -4 "$dns_ipv4" || dns_ipv4=n/a
+			else
+				unset dns_ipv4
+			fi
+			if [[ "${dynDns6[*]}" =~ $service ]]; then
+				dns_ipv6=$( f_ip_dns "${dynDns[$service]}" AAAA @"${namesServer[$service]}" )
+				f_ip_validate -6 "$dns_ipv6" || dns_ipv6=n/a
+			else
+				unset dns_ipv6
+			fi
+			printf "${BLUE}    %-${length}s: %s   %s ${STD}\\n" "${dynDns[$service]} ($service)" "$dns_ipv4" "$dns_ipv6"
+		done
+	else
+	 echo "  fichier 'conf' inaccessible ou droits insuffisants pour voir les informations avancées"
+	fi
+	echo -e "\\n  plus d'infos: $GREEN$url_notice$STD\\n"
+}
+
+# shellcheck disable=SC1117
+usage_version(){		# 27/04/2018
+
+	cat <<- end
+   _                       _       _ 
+  (_)_ __  _   _ _ __   __| | __ _| |_ ___   
+  | | '_ \| | | | '_ \ / _' |/ _' | __/ _ \  
+  | | |_) | |_| | |_) | (_| | (_| | ||  __/  
+  |_| .__/ \__,_| .__/ \__,_|\__,_|\__\___|  $script_options
+    |_|         |_|  $RED v$version $date $STD      
+
+	end
+}
+
+
+#######  variables  script -----------------------------------------------------
+
+url_script="https://framagit.org/sdeb/ipupdate/raw/master/ipupdate"
+url_notice="https://framaclic.org/h/doc-ipupdate"		# https://framagit.org/sdeb/ipupdate/blob/master/README.md
+fileDev="/opt/bin/fileDev"
+logs_path="/var/log"				# chemin racine des logs
+script_logs="$script.log"			# obligatoire, fichier logs (f__log)
+mails_queue="/tmp"
+logs_base=(
+	script_logs
+	fileTrack
+)
+
+
+#######  start  script ---------------------------------------------------------
+
+f__basedirname
+f__color
+
+	# conf file in /etc or current directory
+if [ -e "/etc/$script.conf" ]; then
+	conf_location=/etc
+fi
+if [ -e "$dirscript/$script.conf" ]; then		# priorité au conf dans répertoire courant
+	conf_location="$dirscript"
+fi
+# shellcheck source=./ipupdate.conf
+if ! . "$conf_location/$script.conf" 2>/dev/null ; then
+	conf_unavailble='yes'
+fi
+if [[ "$conf_unavailble" && ! "$*" =~ -h|-v ]] ; then
+	f__log "conf file not found or not available" --disp
+	exit 1
+fi
+
+PATH="$PATH:/usr/sbin:/usr/bin:/sbin:/bin" 
+TERM=xterm  
+export PATH TERM
+
+dynDns_base="duckdns / dynu / freemyip / hn / noip"
+user_agent="$script/$version"
+[[ ! "-${protocol#-}" =~ [-46] ]] && protocol="-46"
+case "$protocol" in -4 | -6 | -46 ) ;; * ) protocol="-4" ;; esac
+	# test logs_path
+if ! touch -a "$logs_path/$script_logs" 2>/dev/null; then		# /var/log/$script_logs non accessible en écriture
+	if touch -a "$dirscript/$script_logs"; then					# essai sur $dirscript
+		logs_path="$dirscript"
+	elif touch -a "$HOME/$script_logs"; then					# essai sur $HOME (mais variation selon user)
+		logs_path="$HOME"
+	fi
+fi
+	# building with final logs_path
+script_logs="$logs_path/$script.log"
+fileTrack="${logs_path}/track-$script"
+
+send_mail --init
+[ -e /proc/uptime ] && lastboot=$( < /proc/uptime  ) || lastboot=999
+if (( ${lastboot%%\.*} <= 600 )) && [[ ! -e "/tmp/${script}_flag-boot" ]]; then
+	origin+="boot $( date --date="${lastboot%%\.*} seconds ago" '+%d/%m/%Y %H:%M %z' ) "
+	f__log "$origin"
+fi
+
+	# format command>family
+cmd_requis=(
+	'date>coretutils'
+	'curl'
+	"ip>iproute2"
+)
+	# commandes requises
+unset missing_command
+for cmd in "${cmd_requis[@]}"; do
+	if ! command -v "${cmd%>*}" >/dev/null ; then
+		missing_command+="${cmd%>*} "
+		[ "${cmd%>*}" != "${cmd#*>}" ] && missing_command="${missing_command% }(${cmd#*>}) "
+	fi
+done
+[ "$missing_command" ] && die "Missing ${missing_command% }, please, install"
+
+script_options="$*"
+	# options
+while (( $# )) ; do
+	case "$1" in 
+		--debug ) curl_debug=( "-v" ) ;;
+		--dev   ) url_script=${url_script//\/master\//dev} ;;
+		--service ) 
+			domain=${dynDns[$2]}
+			if [ -z "$domain" ]; then
+				echo "service inconnu ou inactif"
+				exit 1
+			fi
+			declare -A dynDns=( ["$2"]="$domain" )	# reformation array with ONE record only
+			shift ;;
+		* ) options+=( "$1" )
+	esac
+	shift
+done
+	# actions
+usage_version
+for i in "${options[@]}" ; do
+	case "$i" in
+		-c | --clear ) upd_clear ; exit ;;
+		-f | --force ) 
+				origin+="manual forcing "
+				upd_ddns; exit ;;
+		-i | --install )   script_install   ; exit ;;
+		-r | --remove  )   script_uninstall ; exit ;;
+		-u | --upgrade )   script_upgrade   ; exit ;;
+		-v | --version )   script_get_version; exit ;;
+		-h | --help | -* ) usage          ; exit ;;
+	esac
+done
+
+upd_ddns && send_mail_queue			# pas d'envoi si no connexion, test en début de upd_ddns()
+echo
+
+exit 0
+### END CONTROL (download control)
+
+curl -OL https://framaclic.org/h/ipupdate
+wget -nv -O ipupdate https://framaclic.org/h/ipupdate
+chmod +x ipupdate && ./nstest
+
+https://framagit.org/sdeb/ipupdate/raw/master/LICENSE.md
