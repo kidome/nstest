@@ -1,4 +1,4 @@
-# nstest: test of DNS servers
+# nstest
 
 
 ![version: v1.2](https://img.shields.io/badge/version-1.2%20-blue.svg?longCache=true&style=for-the-badge)
@@ -228,4 +228,14 @@ some servers, outside OpenNic, resolve alternative domain names, today: level3 &
 * [Emercoin](https://emercoin.com/en/tech-solutions?page=49#services): .bazar, .coin, .amc, .lib, 
 * [FurNIC](http://www.nic.fur/): .fur
 * [Namecoin](https://namecoin.org/): .bit
-* [New Nations](): .ku, .te, .ti, .uu
+* [New Nations](http://new-nations.net/en/): .ku, .te, .ti, .uu
+
+
+## sources
+
+[framagit (gitlab) (framasoft service)](https://framagit.org/sdeb/nstest/blob/master/README.md#nstest)
+
+
+## license
+
+* [LPRAB / WTFPL](https://framagit.org/sdeb/nstest/blob/master/LICENSE.md)

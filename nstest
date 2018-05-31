@@ -354,7 +354,7 @@ z_core(){		# 28/05/2018
 
 #######  variables  script -----------------------------------------------------
 
-#~ url_script="https://framaclic.org/h/nstest"		# https://framagit.org/sdeb/nstest/blob/master/nstest
+#~ url_script="https://framagit.org/sdeb/nstest/raw/master/nstest"
 url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nstest/blob/master/README.md
 
 #######  options processing ----------------------------------------------------
@@ -413,9 +413,8 @@ done
 
 exit
 
-curl -OL nstest https://framaclic.org/h/nstest
+curl -OL https://framaclic.org/h/nstest
 wget -nv -O nstest https://framaclic.org/h/nstest
 chmod +x nstest && ./nstest
 
-https://framagit.org/sdeb/nstest/tree/master
 https://framagit.org/sdeb/nstest/raw/master/nstest
