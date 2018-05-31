@@ -5,7 +5,7 @@
 #    contributeurs: kyodev, naguam
 #####
 
-version=1.0.0
+version=1.0.1
 script="ipupdate"
 date="31/05/2018"
 contact="irc:freenode.net##sdeb"
@@ -366,7 +366,7 @@ f_ip_validate(){		# 17/05/2018
 }
 
 	# $1 téléchargement déjà fait, assigne $online_version
-script_get_version(){		# 12/05/2018
+script_get_version(){		# 31/05/2018
 	local temp  
 
 	if [ "$1" ]; then
@@ -378,7 +378,7 @@ script_get_version(){		# 12/05/2018
 	read -r online_version <<< "$temp"
 	[[ "${online_version:0:1}" =~ [0-9] ]] || unset online_version
 	[ "$1" ] && return 0
-	echo -e "  version en ligne (fake): $online_version \\n"
+	echo -e "  version en ligne: $online_version \\n"
 }
 
 script_install(){		# 27/05/2018
