@@ -3,3 +3,4 @@ ipupdate.log
 track-ipupdate
 syslog.txt
 ipupdate-release/
+ex_*/
