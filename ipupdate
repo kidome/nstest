@@ -5,9 +5,9 @@
 #    contributeurs: kyodev, naguam
 #####
 
-version=1.0.2
+version=1.0.3
 script="ipupdate"
-date="31/05/2018"
+date="01/06/2018"
 contact="irc:freenode.net##sdeb"
 
 	# $1 message to display
@@ -366,7 +366,7 @@ f_ip_validate(){		# 17/05/2018
 }
 
 	# $1 téléchargement déjà fait, assigne $online_version
-script_get_version(){		# 31/05/2018
+script_get_version(){		# 01/06/2018
 	local temp  
 
 	if [ "$1" ]; then
@@ -376,7 +376,7 @@ script_get_version(){		# 31/05/2018
 	fi
 	temp=${temp#*version=}
 	read -r online_version <<< "$temp"
-	[[ "${online_version:0:1}" =~ [0-9] ]] || unset online_version
+	[[ "${online_version:0:1}" =~ [0-9] ]] || online_version="${RED}n/a"
 	[ "$1" ] && return 0
 	echo -e "  version en ligne: $GREEN$online_version$STD \\n"
 }
@@ -438,20 +438,20 @@ script_uninstall(){		# 27/05/2018
 	f__log "$script désinstallé" --disp
 }
 
-script_upgrade(){		# 31/05/2018
+script_upgrade(){		# 01/06/2018
 
 	if [ ! -w "$dirscript/$script" ]; then
-		[ "$EUID" -ne 0 ] && die "fatal error: the uninstallation must be made in root"
+		[ "$EUID" -ne 0 ] && die "fatal error: the upgrade must be made in root"
 	fi
-	[[ "$dirscript" =~ /opt/bin  && "$EUID" -ne 0 ]] && die "upgrade must be made in root"
-	! curl --silent --show-error -o "/tmp/$script" "$url_script" && die "erreur chargement script (curl $?)"
+	[[ "$dirscript" =~ /opt/bin  && "$EUID" -ne 0 ]] && die "the upgrade must be made in root"
+	! curl --silent --show-error -o "/tmp/$script" "$url_script" && die "error loading script (curl $?)"
 	if grep -q '^### END CONTROL' "/tmp/$script"; then 
 		script_get_version "$( < "/tmp/$script" )"
 		mv "/tmp/$script" "$dirscript/$script"
 		chmod 775 "$dirscript/$script"
 		f__log "$script mis à jour en version $online_version" --disp
 	else
-		die "échec update, téléchargement incomplet"
+		die "failure update, incomplete download"
 	fi
 	rm "/tmp/$script" 2>/dev/null
 	echo
@@ -900,27 +900,27 @@ update_noip(){		# 29/05/2018
 	fi
 }
 
-usage(){		# 29/05/2018
+usage(){		# 01/06/2018
 	local pluriel max length service dns_ipv4 dns_ipv6 
 
 	if (( ${#dynDns[@]} > 0 )); then pluriel="s"; else unset pluriel ; fi
 	cat <<- end
-	  usage :  $script [options]
+	  usage :  ${BLUE}$script [options]${STD}
 	
-	${BLUE}    sans option  :${STD} tous les services configurés sont vérifiés et une éventuelle nouvelle 
+	${BLUE}    sans option  ${STD}: tous les services configurés sont vérifiés et une éventuelle nouvelle 
 	                   adresse IP est publiée si changement $RED(root requis)${STD}
-	${BLUE}        --debug  :${STD} affichage mode verbeux (publication, session smtp)
-	${BLUE}        --dev    :${STD} utilisation branche dev pour mise à jour ou n° de version 
-	${BLUE}        --service <service> :${STD} réduit les actions sur un seul <service> de DNS dynamique
-	${BLUE}    -c, --clear  :${STD} efface l'ip dans la zone DNS (ou mise en mode hors-ligne) $RED(root requis)${STD}
+	${BLUE}        --debug  ${STD}: affichage mode verbeux (publication, session smtp)
+	${BLUE}        --dev    ${STD}: utilisation branche dev pour mise à jour ou n° de version 
+	${BLUE}        --service <service> ${STD}: réduit les actions sur un seul <service> de DNS dynamique
+	${BLUE}    -c, --clear  ${STD}: efface l'ip dans la zone DNS (ou mise en mode hors-ligne) $RED(root requis)${STD}
 	                   (voir à désinstaller ou désactiver l'exécution périodique)
-	${BLUE}    -f, --force  :${STD} force les mises à jours des DNS dynamiques $RED(root requis)${STD}
+	${BLUE}    -f, --force  ${STD}: force les mises à jours des DNS dynamiques $RED(root requis)${STD}
 	                    -f --service <example> forcera uniquement le service <example>
-	${BLUE}    -h, --help   :${STD} cette aide
-	${BLUE}    -i, --install:${STD} installation $RED(root requis)${STD}
-	${BLUE}    -r, --remove :${STD} désinstallation $RED(root requis)${STD}
-	${BLUE}    -u, --upgrade:${STD} provoque le chargement et le remplacement du script en place $RED(root requis)${STD}
-	${BLUE}    -v, --version:${STD} version du script en ligne et en place 
+	${BLUE}    -h, --help   ${STD}: cette aide
+	${BLUE}    -i, --install${STD}: installation $RED(root requis)${STD}
+	${BLUE}    -r, --remove ${STD}: désinstallation $RED(root requis)${STD}
+	${BLUE}    -u, --upgrade${STD}: provoque le chargement et le remplacement du script en place $RED(root requis)${STD}
+	${BLUE}    -v, --version${STD}: version du script en ligne et en place 
 
 	  script dir    : ${GREEN}$dirscript/${STD}
 	  conf file     : ${GREEN}$conf_location/$script.conf${STD}

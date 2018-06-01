@@ -288,6 +288,11 @@ si l'envoi de mails est configuré, voir `ipupdate.conf` et activé `envoi_mail=
   * dtdns: temps de mise à jour zone dns TRÈS long
 
 
+## sources
+
+[framagit (gitlab) (framasoft service)](https://framagit.org/sdeb/ipupdate/tree/master#ipupdate)
+
+
 ## license
 
-* [LPRAB / WTFPL](https://framagit.org/kyodev/kyopages/blob/master/scripts/LICENSE.md)
+* [LPRAB / WTFPL](https://framagit.org/sdeb/ipupdate/blob/master/LICENSE.md)
