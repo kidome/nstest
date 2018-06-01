@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.4
+version=1.5
 script="nstest"
-date="31/05/2018"
+date="01/06/2018"
 #~ contact="irc:freenode.net##sdeb"
 
 if ! command -v sort > /dev/null; then
@@ -125,6 +125,22 @@ assign_variables(){		# 31/05/2018
 	domains_qty=${#domains_test[@]}
 }
 
+	# $1 message to display
+die(){		# 31/05/2018
+	echo "  Fatal: $1"
+	echo
+	exit 1
+}
+
+	# détermination dirname et basename avec suivi lien éventuel, assigne $dirscript & $basescript
+# shellcheck disable=SC2034
+f__basedirname(){		# 27/04/2018
+
+	dirscript=$( readlink -f "$0" )		# /path/from/root/scriptname (absolute path)
+	basescript=${dirscript##*/}			# scriptname
+	dirscript=${dirscript%/*}			# /path/from/root/
+}
+
 	# getTime : start count
 	# getTime end : comptage fin, calcul fin - départ, affichage différence en ms
 	# getTime end:sec : idem sauf affichage différence en s
@@ -198,7 +214,40 @@ readingResolv(){		# 25/05/2018
 	fi
 }
 
-usage(){		# 28/05/2018
+	# $1 téléchargement déjà fait, assigne $online_version
+script_get_version(){		# 01/06/2018
+	local temp  
+
+	if [ "$1" ]; then
+		temp="$1"		# version fichier
+	else
+		! temp=$( curl --silent --show-error "$url_script" ) && die "error getting script online version"
+	fi
+	temp=${temp#*version=}
+	read -r online_version <<< "$temp"
+	[[ "${online_version:0:1}" =~ [0-9] ]] || online_version="${RED}n/a"
+	[ "$1" ] && return 0
+	echo -e "  online version: $GREEN$online_version$STD \\n"
+}
+
+script_upgrade(){		# 01/06/2018
+
+	if [ ! -w "$dirscript/$script" ]; then
+		[ "$EUID" -ne 0 ] && die "fatal error: the upgrade must be made in root"
+	fi
+	! curl --silent --show-error -o "/tmp/$script" "$url_script" && die "error loading script (curl $?)"
+	if grep -q '^### END CONTROL' "/tmp/$script"; then 
+		script_get_version "$( < "/tmp/$script" )"
+		mv "/tmp/$script" "$dirscript/$script"
+		chmod 775 "$dirscript/$script"
+	else
+		die "failure update, incomplete download"
+	fi
+	rm "/tmp/$script" 2>/dev/null
+	echo
+}
+
+usage(){		# 01/06/2018
 	local ns server_name allns alldns domains
 
 	assign_variables
@@ -214,61 +263,74 @@ usage(){		# 28/05/2018
 	alldns=${alldns::-2}
 	for domain in "${domains_test[@]}"; do domains+="$domain | "; done
 	domains=${domains::-2}
-	usage_version
 	cat <<- end
-	  $script [options]
+	  usage:  ${BLUE}$script [options]${STD}
 
-	        --bench    : run with all lists of domains to test
-	        --drill    : drill is forced if existing, otherwise dig has priority 
-	    -e, --export   : export on a pastebin
-	    -c, --compress : no extended report, only time averages
-	    -d, --domains  : choice between 3 test domain lists: base (defaut), alt, atld, or easy 
-	    -f, --file     : the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
-	        --nodns    : only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
-	        --noresolv : the file /etc/resolv.conf is not read, implied with --file
-	        --nosort   : no sorted report on average column
-	        --opt      : print list of dns servers and domains for tests
-	    -h, --help     : this help
+	${BLUE}        --bench   ${STD}: run with all lists of domains to test
+	${BLUE}        --dev     ${STD}: use dev branch for update or for version number
+	${BLUE}        --drill   ${STD}: drill is forced if existing, otherwise dig has priority 
+	${BLUE}    -e, --export  ${STD}: export on a pastebin
+	${BLUE}    -c, --compress${STD}: no extended report, only time averages
+	${BLUE}    -d, --domains ${STD}: choice between 3 test domain lists: base (defaut), alt, atld, or easy 
+	${BLUE}    -f, --file    ${STD}: the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
+	${BLUE}        --nodns   ${STD}: only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
+	${BLUE}        --noresolv${STD}: the file /etc/resolv.conf is not read, implied with --file
+	${BLUE}        --nosort  ${STD}: no sorted report on average column
+	${BLUE}        --opt     ${STD}: print list of dns servers and domains for tests
+	${BLUE}    -h, --help    ${STD}: this help
+	${BLUE}    -u, --upgrade ${STD}: load and replace the script in place
+	${BLUE}    -v, --version ${STD}: version of the script online and in place
 
-	  a time, with a minus before, means that the tested domain is not found 
-	
 	  examples:
-	      ./ntest : full report, with nameservers in /etc/resolv.conf and few open DNS servers
-	      ./ntest --nodns --compress : report with only averages with only nameservers in /etc/resolv.conf
-	      ./ntest -e  --noresolv : export on a pastebin, to exchange a test
-	      ./ntest --noresolv -d easy : full report, with domains to test easy, performances are better (responses in cache DNS)
-	      ./ntest -h  -d alt : this help, with domain list alt(ernative)
+	${BLUE}      ./ntest                    ${STD}: full report, with nameservers in /etc/resolv.conf and few open DNS servers
+	${BLUE}      ./ntest --nodns --compress ${STD}: report with only averages with only nameservers in /etc/resolv.conf
+	${BLUE}      ./ntest -e  --noresolv     ${STD}: export on a pastebin, to exchange a test
+	${BLUE}      ./ntest --noresolv -d easy ${STD}: full report, with domains to test easy, performances are better (responses in cache DNS)
+	${BLUE}      ./ntest -h  -d alt         ${STD}: this help, with domain list alt(ernative)
 
 	  dns servers: 
-	      $alldns
+	${GREEN}      $alldns${STD}
 	end
-	[ "$allns" ] && echo "      ($dnsfile) $allns"
+	[ "$allns" ] && echo "${BLUE}      ($dnsfile) $allns${STD}"
 	cat <<- end
-	  test domains ('$testsarray' list): 
-	      $domains
+	  test domains (${RED}'$testsarray'${STD} list): 
+	      ${BLUE}$domains${STD}
 
-	  more info: $url_notice
+	  more info: ${GREEN}$url_notice${STD}
 
 	end
 }
 
 # shellcheck disable=SC1117
-usage_version(){		# 24/05/2018
+usage_version(){		# 01/06/2018
+
+	if type -p tput &>/dev/null && tput setaf 1 &>/dev/null; then
+		  GREEN=$( tput setaf 2 )		# ok
+		   BLUE=$( tput setaf 4 )		# info
+			RED=$( tput setaf 1 )		# alerte
+			STD=$( tput sgr0 )			# retour "normal"
+	else 
+		 GREEN=$'\033[0;32m'		# ok
+		  BLUE=$'\033[0;34m'		# info
+		   RED=$'\033[0;31m'		# alerte
+		   STD=$'\033[0m'			# standard
+	fi
+
 	cat <<- end
 	             _            _   
 	   _ __  ___| |_ ___  ___| |_ 
 	  | '_ \/ __| __/ _ \/ __| __|
 	  | | | \__ \ ||  __/\__ \ |_ 
 	  |_| |_|___/\__\___||___/\__| $script_options
+	        version: $GREEN$version $date$STD
+	
 	end
-	echo -e "\\tversion: v$version $date\\n"
 }
 
 z_core(){		# 31/05/2018
 	local ns server_ip server_name width wcol margin header xyz domain line time_sum counter counterNotFound notfound 
 	local time time_sum average unit report footer output ligneRapport 
 
-	usage_version
 	if [ -z "$noresolv" ]; then
 		readingResolv "$dnsfile"
 	fi
@@ -394,11 +456,13 @@ z_core(){		# 31/05/2018
 
 #######  variables  script -----------------------------------------------------
 
-#~ url_script="https://framagit.org/sdeb/nstest/raw/master/nstest"
+url_script="https://framagit.org/sdeb/nstest/raw/master/nstest"
 url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nstest/blob/master/README.md
 
 #######  options processing ----------------------------------------------------
 
+f__basedirname
+usage_version
 testsarray="base"
 script_options="$*"
 td=( base alt easy atld )
@@ -406,6 +470,7 @@ td=( base alt easy atld )
 while (( $# )) ; do
 	case "$1" in
 		     --bench    ) totest=( "${td[@]}" ) ; bench='yes' ;;
+			 --dev      ) url_script=${url_script//\/master\//dev} ;;
 		     --drill    ) drilltest='yes'  ;;
 		-e | --export   ) export='yes'     ;;
 		-c | --compress ) compress='yes'   ;;
@@ -434,6 +499,8 @@ for i in "${options[@]}" ; do
 					echo "list $test: ${domains::-2}"
 				done
 			exit ;;
+		-u | --upgrade )   script_upgrade   ; exit ;;
+		-v | --version )   script_get_version; exit ;;
 		-h | --help | * ) usage ; exit ;;
 	esac
 done
@@ -451,7 +518,8 @@ for list in "${totest[@]}"; do
 	[ "$bench" ] && sleep 30s
 done
 
-exit
+exit O
+### END CONTROL (download control)
 
 curl -OL https://framaclic.org/h/nstest
 wget -nv -O nstest https://framaclic.org/h/nstest
