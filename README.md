@@ -1,7 +1,7 @@
 # nstest
 
 
-![version: v1.3](https://img.shields.io/badge/version-1.3%20-blue.svg?longCache=true&style=for-the-badge)
+![version: v1.5](https://img.shields.io/badge/version-1.5%20-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-version4-brightgreen.svg)
 ![status](https://img.shields.io/badge/status-release-green.svg)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
@@ -26,38 +26,41 @@ It can be exported the report on a pastebin for easy exchange.
    _ __  ___| |_ ___  ___| |_ 
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
-  |_| |_|___/\__\___||___/\__| -h
-	version: v1.3 31/05/2018
+  |_| |_|___/\__\___||___/\__| 
+        version: 1.5 01/06/2018
 
-  nstest [options]
+  usage:  nstest [options]
 
-        --bench    : run with all lists of domains to test
-        --drill    : drill is forced if existing, otherwise dig has priority 
-    -e, --export   : export on a pastebin
-    -c, --compress : no extended report, only time averages
-    -d, --domains  : choice between 3 test domain lists: base (defaut), alt, atld, or easy 
-    -f, --file     : the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
-        --nodns    : only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
-        --noresolv : the file /etc/resolv.conf is not read, implied with --file
-        --nosort   : no sorted report on average column
-        --opt      : print list of dns servers and domains for tests
-    -h, --help     : this help
-
-  a time, with a minus before, means that the tested domain is not found 
+        --bench   : run with all lists of domains to test
+        --dev     : use dev branch for update or for version number
+        --drill   : drill is forced if existing, otherwise dig has priority 
+    -e, --export  : export on a pastebin
+    -c, --compress: no extended report, only time averages
+    -d, --domains : choice between 3 test domain lists: base (defaut), alt, atld, or easy 
+    -f, --file    : the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
+        --nodns   : only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
+        --noresolv: the file /etc/resolv.conf is not read, implied with --file
+        --nosort  : no sorted report on average column
+        --opt     : print list of dns servers and domains for tests
+    -h, --help    : this help
+    -u, --upgrade : load and replace the script in place
+    -v, --version : version of the script online and in place
 
   examples:
-      ./ntest : full report, with nameservers in /etc/resolv.conf and few open DNS servers
+      ./ntest                    : full report, with nameservers in /etc/resolv.conf and few open DNS servers
       ./ntest --nodns --compress : report with only averages with only nameservers in /etc/resolv.conf
-      ./ntest -e  --noresolv : export on a pastebin, to exchange a test
+      ./ntest -e  --noresolv     : export on a pastebin, to exchange a test
       ./ntest --noresolv -d easy : full report, with domains to test easy, performances are better (responses in cache DNS)
-      ./ntest -h  -d alt : this help, with domain list alt(ernative)
+      ./ntest -h  -d alt         : this help, with domain list alt(ernative)
 
   dns servers: 
-      ...
+      adguard | alternate_dns | cleanbrowsing | cloudflare | comodo | dns_watch | dyn_oracle | freedns | freenom | google | level3 | neustar | norton | opendns | quad9 | uncensoredDNS | verisign  | yandex 
+      (resolv.conf) ns1.lom.it | ns1.pra.cz | ns2.als.fr | ns1.pra.cz 
   test domains ('base' list): 
       debian.org | eurid.eu | free.fr | google.com | info.info | kernel.org | be.libre | ovh.net | packager.io | transfer.sh 
 
   more info: https://framaclic.org/h/doc-nstest
+
 ```
 
 ## download
@@ -114,7 +117,7 @@ Depending on the domains, the response times may differ significantly
 
 
 
-## examples of report
+## bench
 
 ```text
              _            _   
