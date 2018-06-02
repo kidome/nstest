@@ -5,7 +5,7 @@
 #    contributeurs: kyodev, naguam
 #####
 
-version=1.1.Ob
+version=1.1.1b
 script="ipupdate"
 date="02/06/2018"
 contact="irc:freenode.net##sdeb"
@@ -612,10 +612,10 @@ upd_ddns(){		# 02/06/2018
 		-4 | -46 )
 			ipv4=$( f_ip_pub -4 )
 			f__cnx "-4" && cnx="ok" || cnx="KO"
-			priv4=$( f_ip_priv "$ifname" -4 ) ;;
+			priv4=$( f_ip_priv "$ifname" -4 ) ;;&
 		-6 | -46 )
 			ipv6=$( f_ip_priv "$ifname" -6 )
-			f__cnx "-6" && cnx="ok" || cnx="KO" ;;
+			f__cnx "-6" && cnx="ok" || cnx="KO" ;;&
 	esac
 	[ "$cnx" ==  "KO" ] && return 1			# sortie si no connexion
 
@@ -708,8 +708,8 @@ upd_ddns(){		# 02/06/2018
 	touch "$script_logs"		# datage fichier témoin 
 	# shellcheck disable=SC2221,SC2222
 	case "$protocol" in
-		-4 | -46 ) [ -z "$ipv4" ] && ipv4=$( f_ip_pub -4 ) ;;				# 2e tentative éventuelle
-		-6 | -46 ) [ -z "$ipv6" ] && ipv6=$( f_ip_priv "$ifname" -6 ) ;;	# 2e tentative éventuelle
+		-4 | -46 ) [ -z "$ipv4" ] && ipv4=$( f_ip_pub -4 ) ;;&				# 2e tentative éventuelle
+		-6 | -46 ) [ -z "$ipv6" ] && ipv6=$( f_ip_priv "$ifname" -6 ) ;;&	# 2e tentative éventuelle
 	esac
 	[ "$ipv4" ] && send_mail --ip "ipv4: $ipv4" 
 	[ "$ipv6" ] && send_mail --ip "ipv6: $ipv6"
