@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.5
+version=1.6
 script="nstest"
-date="01/06/2018"
+date="02/06/2018"
 #~ contact="irc:freenode.net##sdeb"
 
 if ! command -v sort > /dev/null; then
@@ -25,10 +25,10 @@ else
 	exit 1
 fi
 
-	# assign ${nameservers[@]} ${dns[@]} 
-assign_variables(){		# 31/05/2018
+	# assign ${nameservers[@]} ${dns[@]} $domains_qty, require $testarray
+assign_variables(){		# 01/06/2018
 			# NO SPACE in service name, if not `sort` will fail
-	dns=(
+	dns4=(
 		'176.103.130.130 # adguard'
 		'23.253.163.53 # alternate_dns'
 		'185.228.168.168 # cleanbrowsing'
@@ -43,11 +43,13 @@ assign_variables(){		# 31/05/2018
 		'156.154.70.1 # neustar'
 		'199.85.126.10 # norton'
 		'208.67.222.222 # opendns'
+		#~ '185.121.177.177 # openNic_anycast'	
+		#~ '169.239.202.202 # openNic_anycast'	
 		'9.9.9.9 # quad9'
 		'91.239.100.100 # uncensoredDNS'
 		'64.6.64.6 # verisign '
 		'77.88.8.8 # yandex'
-			#~ fail 31/05/2018
+			#~ fail 06/2018
 		#~ '179.43.139.226 # Fourth_Estate_Zurich'
 		#~ '81.218.119.11 # greenTeamDns'
 		#~ '185.121.177.177 # openNic_anycast'	
@@ -55,17 +57,20 @@ assign_variables(){		# 31/05/2018
 	)
 	dns6=(
 		'2a00:5a60::ad1:0ff # adguard'
-		'2a0d:2a00:1 # cleanbrowsing'
-		'2606:4700:4700::1111 # cloudflare'
+		#~ '2606:4700:4700::1111 # cloudflare'
+		'2606:4700:4700::1001 # cloudflare'
 		'2001:1608:10:25::1c04:b12f # dns_watch'
 		'2001:4860:4860::8888 # google'
-		'2a05:dfc7:5::53 # openNic_anycast'
+		#~ '2a05:dfc7:5::53 # openNic_anycast'
+		#~ '2a05:dfc7:5::5353 # openNic_anycast'
 		'2610:a1:1018::1 # neustar'
-		'22620:0:ccc::2 # opendns'
 		'2620:fe::fe # quad9'
 		'2001:67c:28a4:: # uncensoredDNS'
 		'2620:74:1b::1:1 # verisign '
 		'2a02:6b8::feed:0ff # yandex'
+			#~ fail 06/2018
+		#~ '2a0d:2a00:1 # cleanbrowsing'
+		#~ '22620:0:ccc::2 # opendns'
 	)
 
 	case "$testsarray" in
@@ -133,12 +138,47 @@ die(){		# 31/05/2018
 }
 
 	# détermination dirname et basename avec suivi lien éventuel, assigne $dirscript & $basescript
-# shellcheck disable=SC2034
-f__basedirname(){		# 27/04/2018
+f__basedirname(){		# 28/04/2018
 
 	dirscript=$( readlink -f "$0" )		# /path/from/root/scriptname (absolute path)
+	# shellcheck disable=SC2034
 	basescript=${dirscript##*/}			# scriptname
 	dirscript=${dirscript%/*}			# /path/from/root/
+}
+
+	# display the ip protocol of the network layer: -4|-6|-46
+f_ip_proto_detect(){		# 01/06/2018
+	local protoPossible noif if inet z protocol
+
+	protoPossible=$( LC_ALL=C ip -o a  )
+	# shellcheck disable=SC2034
+	while read -r noif if inet z; do
+		if [[ "$inet" == "inet" && "$noif" != "lo" ]]; then
+			protocol+='-4'
+		elif [[ "$inet" == "inet6" && "$noif" != "lo" ]]; then
+			protocol+='-6'
+		fi
+	done <<< "$protoPossible"
+	case "$protocol" in -4-6* | -6-4* ) protocol="-46" ;; esac
+	echo "$protocol"
+}
+
+	# $1: ip to analyze, display protocol -4|-6|0
+f_ip_protocol(){		# 24/05/2018
+	reg="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"  
+	regex="^$reg\\.$reg\\.$reg\\.$reg$"
+	if [[ "$1" =~ $regex ]]; then
+		echo -4
+		return 0
+	fi
+	regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
+	if [[ "$1" =~ $regex ]]; then
+		echo -6
+		return 0
+	else 
+		echo 0
+		return 1
+	fi
 }
 
 	# getTime : start count
@@ -184,30 +224,32 @@ get_sec2day(){		# 05/05/2018
 	echo "${display% }"
 }
 
-	# assign ${nameservers[@]}
-# shellcheck disable=SC2034
-readingResolv(){		# 25/05/2018
+	# assign ${nameservers4[@]}, ${nameservers6[@]}, [$1=file where are name's server], by default, resolv.conf is readed
+readingResolv(){		# 01/06/2018
 	local a ip ns 
 
 	unset nameservers
 	if [ "$1" ]; then
+		# shellcheck disable=SC2034
 		file="$1"
 		while read -r ip ns; do 
 			if [[ ! "$ip" =~ ^[[:blank:]]?# ]]; then
-				if [ "$ns" ]; then
-					nameservers+=( "$ip ${ns}" )
+				[ "$ns" ] && title="$ns" || title="# file"
+				if (( $( f_ip_protocol "$ip" ) == -4 )); then
+					nameservers4+=( "$ip $title" )
 				else
-					nameservers+=( "$ip # file" )
+					nameservers6+=( "$ip $title" )
 				fi
 			fi
 		done < "$1"
 	else
 		while read -r a ip ns; do 
 			if [ "$a" == "nameserver" ]; then
-				if [ "$ns" ]; then
-					nameservers+=( "$ip ${ns}" )
+				[ "$ns" ] && title="$ns" || title="# resolv"
+				if (( $( f_ip_protocol "$ip" ) == -4 )); then
+					nameservers4+=( "$ip $title" )
 				else
-					nameservers+=( "$ip # resolv" )
+					nameservers6+=( "$ip $title" )
 				fi
 			fi
 		done < /etc/resolv.conf
@@ -247,25 +289,12 @@ script_upgrade(){		# 01/06/2018
 	echo
 }
 
-usage(){		# 01/06/2018
-	local ns server_name allns alldns domains
+usage(){		# 02/06/2018
 
-	assign_variables
-	[ -z "$noresolv" ] && readingResolv "$dnsfile"
-	[[ -z "$noresolv" && -z "$dnsfile" ]] && dnsfile="resolv.conf"
-	for ns in "${nameservers[@]}"; do
-		server_name=${ns#*#[[:blank:]]}
-		[[ "$server_name" =~ \# ]] && server_name=${ns#*#}
-		allns+="$server_name | "
-	done
-	allns=${allns::-2}
-	for ns in "${dns[@]}"; do ns=${ns#*# }; alldns+="$ns | "; done 
-	alldns=${alldns::-2}
-	for domain in "${domains_test[@]}"; do domains+="$domain | "; done
-	domains=${domains::-2}
 	cat <<- end
-	  usage:  ${BLUE}$script [options]${STD}
+	  usage:  ${BLUE}$script [options]${STD}        ( ${RED}options and arguments must be SEPARATED by one space$STRD )
 
+	${BLUE}    -4, -6, -46   ${STD}: protocols to use: ipv4, ipv6, ipv4 & ipv6. by default, the protocol(s) used in the net layer 
 	${BLUE}        --bench   ${STD}: run with all lists of domains to test
 	${BLUE}        --dev     ${STD}: use dev branch for update or for version number
 	${BLUE}        --drill   ${STD}: drill is forced if existing, otherwise dig has priority 
@@ -276,8 +305,9 @@ usage(){		# 01/06/2018
 	${BLUE}        --nodns   ${STD}: only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
 	${BLUE}        --noresolv${STD}: the file /etc/resolv.conf is not read, implied with --file
 	${BLUE}        --nosort  ${STD}: no sorted report on average column
-	${BLUE}        --opt     ${STD}: print list of dns servers and domains for tests
+	${BLUE}        --opt     ${STD}: print list of dns servers and domains used for tests
 	${BLUE}    -h, --help    ${STD}: this help
+	${BLUE}    -s, --sort    ${STD}: sort on domain number
 	${BLUE}    -u, --upgrade ${STD}: load and replace the script in place
 	${BLUE}    -v, --version ${STD}: version of the script online and in place
 
@@ -287,14 +317,10 @@ usage(){		# 01/06/2018
 	${BLUE}      ./ntest -e  --noresolv     ${STD}: export on a pastebin, to exchange a test
 	${BLUE}      ./ntest --noresolv -d easy ${STD}: full report, with domains to test easy, performances are better (responses in cache DNS)
 	${BLUE}      ./ntest -h  -d alt         ${STD}: this help, with domain list alt(ernative)
-
-	  dns servers: 
-	${GREEN}      $alldns${STD}
-	end
-	[ "$allns" ] && echo "${BLUE}      ($dnsfile) $allns${STD}"
-	cat <<- end
-	  test domains (${RED}'$testsarray'${STD} list): 
-	      ${BLUE}$domains${STD}
+	${BLUE}      ./ntest --opt              ${STD}: displays all parameters
+	${BLUE}      ./ntest --sort 5           ${STD}: sort on domain number 5
+	${BLUE}      ./ntest --bench --noresolv ${STD}: bench for all open DNS, protocols configured in the net layer 
+	${BLUE}      ./ntest --bench --nodns    ${STD}: bench for names's servers in resolv.conf, protocols configured in the net layer 
 
 	  more info: ${GREEN}$url_notice${STD}
 
@@ -327,15 +353,11 @@ usage_version(){		# 01/06/2018
 	end
 }
 
-z_core(){		# 31/05/2018
-	local ns server_ip server_name width wcol margin header xyz domain line time_sum counter counterNotFound notfound 
+	# [$1=protocol used]
+z_core(){		# 02/06/2018
+	local ns server_ip server_name width wcol margin typeIp header xyz domain line time_sum counter counterNotFound notfound 
 	local time time_sum average unit report footer output ligneRapport 
 
-	if [ -z "$noresolv" ]; then
-		readingResolv "$dnsfile"
-	fi
-	assign_variables "$testsarray"
-	[ "$nodns" ] && unset dns
 	if [ "$drilltest" ] && command -v drill > /dev/null; then
 		dig=drill
 	fi
@@ -350,8 +372,9 @@ z_core(){		# 31/05/2018
 
 	wcol=8
 	margin="  "
+	[ "$1" ] && typeIp="IPV${1#-}"
 		# report header
-	header=$( printf "${margin}%-${width}s" "" )
+	header=$( printf "${RED}${margin}%10s%-$((width-10))s$STD" "$typeIp" )
 	if [ -z "$compress" ]; then
 		xyz=1
 		for domain in "${domains_test[@]}"; do
@@ -360,7 +383,6 @@ z_core(){		# 31/05/2018
 		done
 	fi
 	header+=$( printf "%$(( wcol + 3 ))s\\n" "Average" )
-
 		# report's lines
 	for ns in "${nameservers[@]}" "${dns[@]}"; do
 		server_ip=${ns%[[:blank:]]#*}
@@ -416,7 +438,11 @@ z_core(){		# 31/05/2018
 		# sort if no nosort option and command sort
 	if [ -z "$nosort" ] && command -v sort > /dev/null; then
 		[ "$compress" ] && unset domains_qty 
-		report=$( echo "$report" | sort -n -k $(( domains_qty + 3 )) )
+		if [ "$dtos" ] ; then
+			report=$( echo "$report" | sort -n -k $(( $dtos + 2 )) )
+		else
+			report=$( echo "$report" | sort -n -k $(( domains_qty + 3 )) )
+		fi
 	fi
 
 	echo "$header"
@@ -453,6 +479,95 @@ z_core(){		# 31/05/2018
 	fi
 }
 
+z_options(){		# 02/06/2018
+	local width testProto proto nameservers xyz dns ns ip test domain
+
+		# display open dns
+	if [ -z "$nodns" ]; then
+		case "$protocol" in
+			-4 | -6 ) testProto="$protocol" ;;
+				*   ) testProto=( -4 -6 ) ;;
+		esac
+		for proto in "${testProto[@]}"; do
+			case "$proto" in
+				-4 ) dns=( "${dns4[@]}" ) ;;
+				-6 ) dns=( "${dns6[@]}" ) ;;
+			esac
+				# display dns
+			xyz=0
+			width=0
+			for ns in "${dns[@]}"; do
+				(( ${#ns} > width )) && width=$(( ${#ns} + 4 ))
+			done
+			[ -z "$nodns" ] && echo "  ipv${proto#-}:"
+			for ns in "${dns[@]}"; do 
+				ip=${ns% #*}
+				ns=${ns#*# }
+				printf "    %-${width}s" "$ns ( $ip )"
+				if (( xyz == 1 ));then
+					echo
+					xyz=0
+				else
+					(( xyz++ ))
+				fi
+			done
+			echo
+			(( ${#dns[@]} % 2 == 1 )) && echo
+		done
+	fi
+		# display resolv.conf or dns file
+	if [ -z "$noresolv" ]; then
+		case "$protocol" in
+			-4 ) nameservers=( "${nameservers4[@]}" ) ;;
+			-6 ) nameservers=( "${nameservers6[@]}" ) ;;
+			-46 ) nameservers=( "${nameservers4[@]}" "${nameservers6[@]}" ) ;;
+		esac
+		echo "  $dnsfile:"
+		xyz=0
+		width=0
+		for ns in "${nameservers[@]}"; do
+			(( ${#ns} > width )) && width=$(( ${#ns} + 4 ))
+		done
+		for ns in "${nameservers[@]}"; do
+			ip=${ns%[[:blank:]]#*}
+			ns=${ns#*#[[:blank:]]}
+			[[ "$ns" =~ \# ]] && ns=${ns#*#}
+			printf "    %-${width}s" "$ns ( $ip )"
+			if (( xyz == 1 ));then
+				echo
+				xyz=0
+			else
+				(( xyz++ ))
+			fi
+		done
+		echo
+		(( ${#nameservers[@]} % 2 == 1 )) && echo
+	fi
+		# display test domains
+	for test in "${td[@]}"; do
+		testsarray="$test"
+		assign_variables
+		echo "  $test list:"
+		xyz=0
+		width=0
+		for domain in "${domains_test[@]}"; do
+			(( ${#domain} > width )) && width=$(( ${#domain} + 4 ))
+		done
+		printf "    "
+		for domain in "${!domains_test[@]}"; do 
+			printf "%-${width}s " "${domains_test[$domain]}"
+			if (( xyz == 4 ));then
+				echo
+				xyz=0
+				(( domain+1  != ${#domains_test[@]} )) && printf "    "
+			else
+				(( xyz++ ))
+			fi
+		done
+		(( ${#domains_test[@]} % 5 != 0 )) && echo 
+	done
+	echo
+}
 
 #######  variables  script -----------------------------------------------------
 
@@ -462,16 +577,19 @@ url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nst
 #######  options processing ----------------------------------------------------
 
 f__basedirname
+script_options="$*"
 usage_version
 testsarray="base"
-script_options="$*"
+totest="$testsarray"
 td=( base alt easy atld )
+
 	# options
 while (( $# )) ; do
 	case "$1" in
-		     --bench    ) totest=( "${td[@]}" ) ; bench='yes' ;;
+		-4 | -6 | -46 | -64  ) protocol="$1"  ;;
+			 --bench    ) totest=( "${td[@]}" ) ; bench='yes' ;;
 			 --dev      ) url_script=${url_script//\/master\//dev} ;;
-		     --drill    ) drilltest='yes'  ;;
+			 --drill    ) drilltest='yes'  ;;
 		-e | --export   ) export='yes'     ;;
 		-c | --compress ) compress='yes'   ;;
 		-d | --domains  ) testsarray="$2" ; shift
@@ -479,46 +597,88 @@ while (( $# )) ; do
 				alt | atld | base | easy) ;; 
 				* ) echo '  test domains: base selected'; testsarray="base" ;;
 			esac ;;
-		-f | --file     ) dnsfile="$2"    ; shift ;;
-		     --nodns    ) nodns='yes'      ;;
-		     --noresolv ) noresolv='yes'   ;;
-		     --nosort   ) nosort='yes'     ;;
+		-f | --file     ) dnsfile="$2" ; shift ;;
+			 --nodns    ) nodns='yes'      ;;
+			 --noresolv ) noresolv='yes'   ;;
+			 --nosort   ) nosort='yes'     ;;
+		-s | --sort     ) dtos="$2" ; shift ;;
 		* ) options+=( "$1" )
 	esac
 	shift
 done
-(( "${#totest[@]}" == 0 )) && totest=( "$testsarray" )
+
+readingResolv "$dnsfile"
+assign_variables
+
+case "$protocol" in
+	-4 | -6 | -46 ) ;;
+	-64 ) protocol="-46" ;;
+	  * ) protocol=$( f_ip_proto_detect ) ;; 
+esac
+case "$protocol" in
+	-4  ) dns=( "${dns4[@]}" )
+		  nameservers=( "${nameservers4[@]}" ) ;;
+	-6  ) dns=( "${dns6[@]}" )
+		  nameservers=( "${nameservers6[@]}" ) ;;
+	-46 ) dns=( "${dns4[@]}" "${dns6[@]}" )
+		  nameservers=( "${nameservers4[@]}" "${nameservers6[@]}" ) ;;
+esac
+
+[ "$nodns" ] && unset dns
+[ "$noresolv" ] && unset nameservers
+[[ -z "$noresolv" && -z "$dnsfile" ]] && dnsfile="resolv.conf"
+
 	# actions
 for i in "${options[@]}" ; do
 	case "$i" in
-		--opt )	assign_variables
-				for ns in "${dns[@]}"; do ip=${ns% #*}; ns=${ns#*# }; echo "$ns ( $ip )   "; done; echo
-				for test in "${td[@]}"; do
-					testsarray="$test"; assign_variables; unset domains
-					for domain in "${domains_test[@]}"; do domains+="$domain | "; done
-					echo "list $test: ${domains::-2}"
-				done
-			exit ;;
-		-u | --upgrade )   script_upgrade   ; exit ;;
-		-v | --version )   script_get_version; exit ;;
+		     --opt      ) z_options ; exit ;;
+		-u | --upgrade  )   script_upgrade   ; exit ;;
+		-v | --version  )   script_get_version; exit ;;
 		-h | --help | * ) usage ; exit ;;
 	esac
 done
 
 
-####  script core -----------------------------------------------------------
+####  nstest core --------------------------------------------------------------
 
-for list in "${totest[@]}"; do
-	testsarray="$list"
+if [[ "$nodns" && "$noresolv" ]]; then
+	echo -e "$RED  nothing to do \\n$STD"
+	exit
+fi
+
+for list in "${!totest[@]}"; do
+	testsarray="${totest[$list]}"
 	getTime
-	z_core
-	echo -n "  execution time: "
-	echo -en "$( getTime end:auto )\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
-	echo
-	[ "$bench" ] && sleep 30s
+	if [[ $bench ]]; then
+		case "$protocol" in
+			-4  ) protos=-4 ;;
+			-6  ) protos=-6 ;;
+			-46 ) protos=( -4 -6 ) ;;
+		esac
+		for proto in "${protos[@]}"; do
+			case "$proto" in
+				-4 ) dns=( "${dns4[@]}" )
+					 nameservers=( "${nameservers4[@]}" ) ;;
+				-6 ) dns=( "${dns6[@]}" )
+					 nameservers=( "${nameservers6[@]}" ) ;;
+			esac
+			[ "$nodns" ] && unset dns
+			[ "$noresolv" ] && unset nameservers
+			z_core "$proto"
+			echo -n "  execution time: "
+			echo -en "$BLUE$( getTime end:auto )$STD\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
+			echo
+		done
+		(( list != ${#totest[@]}-1 )) && sleep 30s
+	else
+		z_core
+		echo -n "  execution time: "
+		echo -en "$BLUE$( getTime end:auto )$STD\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
+		echo
+	fi
 done
 
-exit O
+exit 0
 ### END CONTROL (download control)
 
 curl -OL https://framaclic.org/h/nstest
