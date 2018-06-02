@@ -7,7 +7,7 @@
 #    contributeurs: kyodev
 #####
 
-version=1.6
+version=1.6.1
 script="nstest"
 date="02/06/2018"
 #~ contact="irc:freenode.net##sdeb"
@@ -588,7 +588,7 @@ while (( $# )) ; do
 	case "$1" in
 		-4 | -6 | -46 | -64  ) protocol="$1"  ;;
 			 --bench    ) totest=( "${td[@]}" ) ; bench='yes' ;;
-			 --dev      ) url_script=${url_script//\/master\//dev} ;;
+			 --dev      ) url_script=${url_script//\/master\///dev/} ;;
 			 --drill    ) drilltest='yes'  ;;
 		-e | --export   ) export='yes'     ;;
 		-c | --compress ) compress='yes'   ;;
