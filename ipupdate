@@ -1075,7 +1075,7 @@ script_options="$*"
 while (( $# )) ; do
 	case "$1" in 
 		--debug ) curl_debug=( "-v" ) ;;
-		--dev   ) url_script=${url_script//\/master\//dev} ;;
+		--dev   ) url_script=${url_script//\/master\///dev/} ;;
 		--service ) 
 			domain=${dynDns[$2]}
 			if [ -z "$domain" ]; then
