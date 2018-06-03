@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.6.1
+version=1.6.2
 script="nstest"
-date="02/06/2018"
+date="03/06/2018"
 #~ contact="irc:freenode.net##sdeb"
 
 if ! command -v sort > /dev/null; then
@@ -289,7 +289,7 @@ script_upgrade(){		# 01/06/2018
 	echo
 }
 
-usage(){		# 02/06/2018
+usage(){		# 03/06/2018
 
 	cat <<- end
 	  usage:  ${BLUE}$script [options]${STD}        ( ${RED}options and arguments must be SEPARATED by one space$STRD )
@@ -298,7 +298,7 @@ usage(){		# 02/06/2018
 	${BLUE}        --bench   ${STD}: run with all lists of domains to test
 	${BLUE}        --dev     ${STD}: use dev branch for update or for version number
 	${BLUE}        --drill   ${STD}: drill is forced if existing, otherwise dig has priority 
-	${BLUE}    -e, --export  ${STD}: export on a pastebin
+	${BLUE}    -e, --export  ${STD}: export on a pastebin, the file ${script}_report.md created for that
 	${BLUE}    -c, --compress${STD}: no extended report, only time averages
 	${BLUE}    -d, --domains ${STD}: choice between 3 test domain lists: base (defaut), alt, atld, or easy 
 	${BLUE}    -f, --file    ${STD}: the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
@@ -354,7 +354,7 @@ usage_version(){		# 01/06/2018
 }
 
 	# [$1=protocol used]
-z_core(){		# 02/06/2018
+z_core(){		# 03/06/2018
 	local ns server_ip server_name width wcol margin typeIp header xyz domain line time_sum counter counterNotFound notfound 
 	local time time_sum average unit report footer output ligneRapport 
 
@@ -439,7 +439,7 @@ z_core(){		# 02/06/2018
 	if [ -z "$nosort" ] && command -v sort > /dev/null; then
 		[ "$compress" ] && unset domains_qty 
 		if [ "$dtos" ] ; then
-			report=$( echo "$report" | sort -n -k $(( $dtos + 2 )) )
+			report=$( echo "$report" | sort -n -k $(( dtos + 2 )) )
 		else
 			report=$( echo "$report" | sort -n -k $(( domains_qty + 3 )) )
 		fi
