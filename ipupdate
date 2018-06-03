@@ -5,9 +5,9 @@
 #    contributeurs: kyodev, naguam
 #####
 
-version=1.1.1b
+version=1.1.0
 script="ipupdate"
-date="02/06/2018"
+date="03/06/2018"
 contact="irc:freenode.net##sdeb"
 
 	# $1 message to display
