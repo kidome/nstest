@@ -6,12 +6,17 @@ version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
 all: lint
 	@ echo "  make $(script) $(version)"
 	@ echo
-	@ echo '  make pack    : shellcheck & makerun (makeself)'
+#~ 	@ echo '  make pack    : shellcheck & makerun (makeself)'
 	@ echo '  make lint    : shellcheck'
-	@ echo '  make git     : git tag <version> & git push'
-	@ echo '  make gitall  : git add . & commit -m <version> & tag <version> & push'
+	@ echo '  make git     : git tag <version> & add . & commit -m <version> & git push --tag'
 	@ echo
+	@ echo "  simulation:"
+	@ git add -n .
+	@ echo
+	@ echo "  git status:"
 	@ git status
+	@ echo
+	@ echo " commiter manuellement tout ce qui ne concerne pas directement $(script)"
 	@ echo
 
 pack: lint
@@ -25,24 +30,15 @@ pack: lint
 	@ git status
 	@ echo
 
-git:
+git: lint
 	@ echo
 	@ echo "  make git $(version)"
 	@ echo
-	@ git tag $(version)
-	@ git push --tags 
-	@ echo "  git tag $(version) ; git push --tag : OK"
-	@ echo
-
-gitall: 
-	@ echo
-	@ echo "  make gitall $(version)"
-	@ echo
+	@ git tag $(version)		# permet de vérifier aussi si le versioning n'est pas existant
 	@ git add .
-	@ git commit -m "$(version)"
-	@ echo "  git add . & commit -m $(version) : OK"
-	@ echo
-	@ make git 
+	@ git commit -m "release $(version)"
+	@ git push --tags 
+	@ echo "  git tag <version> & add . & commit -m <version> & git push --tag : OK"
 	@ echo
 
 lint: 
@@ -50,4 +46,3 @@ lint:
 	@ shellcheck -x $(script)
 	@ echo '  shellcheck ok'
 	@ echo
-
