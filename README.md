@@ -97,7 +97,8 @@ chmod +x nstest
     dns_watch ( 2001:1608:10:25::1c04:b12f )      google ( 2001:4860:4860::8888 )           
     neustar ( 2610:a1:1018::1 )                   quad9 ( 2620:fe::fe )                     
     uncensoredDNS ( 2001:67c:28a4:: )             verisign  ( 2620:74:1b::1:1 )             
-    yandex ( 2a02:6b8::feed:0ff )             
+    yandex ( 2a02:6b8::feed:0ff )
+
 ```
 
 Depending on the domains, the response times may differ significantly
@@ -114,7 +115,8 @@ Depending on the domains, the response times may differ significantly
     reddit.com     twitter.com    whatsapp.com   wikipedia.org  youtube.com    
   atld list:
     register.bbs     opennic.chan     opennic.cyb      nic.fur          rojaciwan.ku     
-    register.neo     reg.null         opennic.oz       uptime.party     vtje.ti         
+    register.neo     reg.null         opennic.oz       uptime.party     vtje.ti     
+     
 ```
 
 
@@ -307,6 +309,7 @@ Depending on the domains, the response times may differ significantly
   execution time: 20 s	 (02/06/2018 15:39 +0200)
 
 ```
+
 Remark: the list *atld* is formed with alternative tld, so it can be _normal_ to get short response times, when the DNS does not support these TLDs (domain not found).
 
 
@@ -444,6 +447,7 @@ Remark: the list *atld* is formed with alternative tld, so it can be _normal_ to
       n/a indicates an inaccessible server, dash (-) indicates a domain not found 
 
   execution time: 21 s	 (31/05/2018 17:35 +0200)
+
 ```
 
 ## tld alternative
