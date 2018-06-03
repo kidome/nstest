@@ -22,6 +22,7 @@ declare -A dynDns=(
 )
 
 # protocl to use, -4: ipv4 only, -6; ipv6 only, -46: both ipv4 & 6
+# if not defined (comment), a detection will be made on the active protocols of the network layer
 protocol="-46"
 
 # taille des logs ou des fichiers de suivi (si tracking), en octets et des fichiers de réserve (*.1) 

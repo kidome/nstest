@@ -1,6 +1,6 @@
 # ipupdate
 
-![version: v1.0](https://img.shields.io/badge/version-1.0%20-blue.svg?longCache=true&style=for-the-badge)
+![version: v1.1](https://img.shields.io/badge/version-1.1%20-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-version4-brightgreen.svg)
 ![status](https://img.shields.io/badge/status-release-green.svg)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
@@ -69,7 +69,7 @@ cp ipupdate.conf.sample ipupdate.conf
     * une tâche est inscrite dans `/etc/crontab` pour une exécution toutes les 5 minutes
 
 
-## help
+## usage
 
 ```text
    _                       _       _ 
@@ -77,9 +77,9 @@ cp ipupdate.conf.sample ipupdate.conf
   | | '_ \| | | | '_ \ / _' |/ _' | __/ _ \  
   | | |_) | |_| | |_) | (_| | (_| | ||  __/  
   |_| .__/ \__,_| .__/ \__,_|\__,_|\__\___|  -h
-    |_|         |_|   v1.0.0 31/05/2018      
+    |_|         |_|  1.1.0 02/06/2018       
 
-  usage :  ipupdate [options]
+  usage :  ipupdate [options]        ( les options et les arguments doivent etre séparés par 1 espace )
 
     sans option  : tous les services configurés sont vérifiés et une éventuelle nouvelle 
                    adresse IP est publiée si changement (root requis)
@@ -96,8 +96,8 @@ cp ipupdate.conf.sample ipupdate.conf
     -u, --upgrade: provoque le chargement et le remplacement du script en place (root requis)
     -v, --version: version du script en ligne et en place 
 
-  script dir    : /home/pi/
-  conf file     : /home/pi/ipupdate.conf
+  script dir    : /opt/bin/
+  conf file     : /etc/ipupdate.conf
   logs file     : /var/log/ipupdate.log
   tracking file : /var/log/track-ipupdate
 
@@ -131,7 +131,7 @@ informations complémentaires:
 
 `ipupdate -h`  aide succincte avec infos de configurations 
 
-`ipupdate -c --service duckdns` efface l'enregistrement, ou active le mode offline auprès de _duckdns_. le service de DNS dynamique doit supporter cette fonctionnalité, et le lancement périodique du script arrêté (désinstallation ou désinsciption crontab, )
+`ipupdate -c --service dynu` efface l'enregistrement, ou active le mode offline auprès de _dynu_. le service de DNS dynamique doit supporter cette fonctionnalité, et le lancement périodique du script arrêté (désinstallation ou désinsciption crontab, )
 
 `ipupdate -c` efface l'enregistrement, ou active le mode offline pour tous les services possibles.
 
@@ -281,7 +281,7 @@ si l'envoi de mails est configuré, voir `ipupdate.conf` et activé `envoi_mail=
      * publication avec token
      * facebook, reddit, google+, twitter requis
   * hn: rustique, peu de fonctionnalité, ipv4 only, temps de mise à jour zone dns un peu lent parfois?
-  * noip: commercial, obligation maintenir compte tous les 30 jours par validation mail, pas d'effacement record
+  * noip: commercial, obligation maintenir compte tous les 30 jours par validation mail, pas d'effacement record en gratuit
 
 * recalés
   * dnsdynamic: à l'abandon

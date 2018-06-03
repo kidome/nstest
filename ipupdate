@@ -5,9 +5,9 @@
 #    contributeurs: kyodev, naguam
 #####
 
-version=1.0.4
+version=1.1.0
 script="ipupdate"
-date="02/06/2018"
+date="03/06/2018"
 contact="irc:freenode.net##sdeb"
 
 	# $1 message to display
@@ -18,10 +18,10 @@ die(){		# 31/05/2018
 }
 
 	# détermination dirname et basename avec suivi lien éventuel, assigne $dirscript & $basescript
-# shellcheck disable=SC2034
-f__basedirname(){		# 27/04/2018
+f__basedirname(){		# 28/04/2018
 
 	dirscript=$( readlink -f "$0" )		# /path/from/root/scriptname (absolute path)
+	# shellcheck disable=SC2034
 	basescript=${dirscript##*/}			# scriptname
 	dirscript=${dirscript%/*}			# /path/from/root/
 }
@@ -67,16 +67,14 @@ f__cnx(){		# 29/05/2018
 	return 1
 }
 
-f__color(){		# 29/05/2018
+f__color(){		# 02/06/2018
 
 	if type -p tput &>/dev/null && tput setaf 1 &>/dev/null; then
-		 #~ YELLOW=$( tput setaf 3 )		# ?
 		  GREEN=$( tput setaf 2 )		# ok
 		   BLUE=$( tput setaf 4 )		# info
 			RED=$( tput setaf 1 )		# alerte
 			STD=$( tput sgr0 )			# retour "normal"
 	else 
-		#~ YELLOW=$'\033[0;33m'		# ?
 		 GREEN=$'\033[0;32m'		# ok
 		  BLUE=$'\033[0;34m'		# info
 		   RED=$'\033[0;31m'		# alerte
@@ -122,7 +120,7 @@ f__log(){		# 17/05/2018	~~SPECIFIQUE
 }
 
 	# $1=bas-haut (ex: 0-5), nombre aléatoire entre bas & haut inclus, si [$2=seq] liste avec départ aléatoire
-f__random(){		# 25/04/2018 2
+f__random(){		# 02/06/2018
 	local bas haut max rand start sequence xyz
 
 	[ "${1//*-*}" ] && return 1		# bad format, no -
@@ -131,9 +129,6 @@ f__random(){		# 25/04/2018 2
     max=$(( 32768 / ( haut + 1 ) * ( haut + 1 ) )) 
     while (( (rand=RANDOM) >= max )); do : ; done
 	if [ "$2" == "seq" ]; then
-		#~ while (( (start=RANDOM) >= max )); do 
-		#~ :
-		#~ done
 		start=$(( bas + ( rand % (haut+1-bas) ) ))
 		for (( xyz=start; xyz <= haut; xyz++ )); do echo "$xyz"; done 
 		(( (start-bas) > 0 )) && for (( xyz=bas; xyz < start; xyz++ )); do echo "$xyz"; done
@@ -365,6 +360,23 @@ f_ip_validate(){		# 17/05/2018
 	fi
 }
 
+	# display the ip protocol of the network layer: -4|-6|-46
+f_ip_proto_detect(){		# 01/06/2018
+	local protoPossible noif if inet z protocol
+
+	protoPossible=$( LC_ALL=C ip -o a  )
+	# shellcheck disable=SC2034
+	while read -r noif if inet z; do
+		if [[ "$inet" == "inet" && "$noif" != "lo" ]]; then
+			protocol+='-4'
+		elif [[ "$inet" == "inet6" && "$noif" != "lo" ]]; then
+			protocol+='-6'
+		fi
+	done <<< "$protoPossible"
+	case "$protocol" in -4-6* | -6-4* ) protocol="-46" ;; esac
+	echo "$protocol"
+}
+
 	# $1 téléchargement déjà fait, assigne $online_version
 script_get_version(){		# 01/06/2018
 	local temp  
@@ -381,7 +393,7 @@ script_get_version(){		# 01/06/2018
 	echo -e "  version en ligne: $GREEN$online_version$STD \\n"
 }
 
-script_install(){		# 27/05/2018
+script_install(){		# 02/06/2018
 	local file
 
 	[ "$EUID" -ne 0 ] && die "installation must be made in root"
@@ -416,7 +428,6 @@ script_install(){		# 27/05/2018
 	grep -q "# $script installation" /etc/crontab && return		# inscription déjà existante
 	{ 
 		echo "# $script installation"
-		#~ echo "*/5 * * * *  root   /opt/bin/$script >/dev/null 2>&1"
 		echo "*/5 * * * *  root   /opt/bin/$script >/dev/null"
 		echo "#"
 	} >> /etc/crontab
@@ -593,31 +604,28 @@ upd_clear(){		# 27/05/2018
 	[ "$mail_enable" == true ] && send_mail --final
 }
 
-upd_ddns(){		# 30/05/2018
-	local options cnx priv4 service flag_file flag log dns_ipv4 dns_ipv6 todo
+upd_ddns(){		# 02/06/2018
+	local cnx priv4 options service flag_file flag log dns_ipv4 dns_ipv6 todo
 
-	if (( protocol == -4 || protocol == -46 )); then
-		f__cnx "-4" && cnx="ok" || cnx="KO"
-	else
-		f__cnx "-6" && cnx="ok" || cnx="KO"
-	fi
+	# shellcheck disable=SC2221,SC2222
+	case "$protocol" in
+		-4 | -46 )
+			ipv4=$( f_ip_pub -4 )
+			f__cnx "-4" && cnx="ok" || cnx="KO"
+			# shellcheck disable=SC2034
+			priv4=$( f_ip_priv "$ifname" -4 ) ;;&
+		-6 | -46 )
+			ipv6=$( f_ip_priv "$ifname" -6 )
+			f__cnx "-6" && cnx="ok" || cnx="KO" ;;&
+	esac
 	[ "$cnx" ==  "KO" ] && return 1			# sortie si no connexion
 
 	if [ "$tracking" == "true" ]; then
-		(( protocol == -4 || protocol == -46 )) && priv4=$( f_ip_priv "$ifname" -4 )
 		(( protocol == -4 || protocol == -46 )) && options+=( "ipv4:16" )
 		(( protocol == -6 || protocol == -46 )) && options+=( "ipv6:40" )
 		options+=( "cnx:4" )
 		(( protocol == -4 || protocol == -46 )) && options+=( "priv4:16" )		# log dans fichier track quand changement
 		track "${options[@]}"
-		echo "$cnx $priv4" >/dev/null		# fake for shellcheck SC2034
-	fi
-
-	if (( protocol == -4 || protocol == -46 )); then
-		ipv4=$( f_ip_pub -4 )
-	fi
-	if (( protocol == -6 || protocol == -46 )); then
-		ipv6=$( f_ip_priv "$ifname" -6 )
 	fi
 
 	if [[ "$origin" =~ boot && ! -e "/tmp/${script}_flag-boot" ]]; then
@@ -699,8 +707,11 @@ upd_ddns(){		# 30/05/2018
 		fi
 	done
 	touch "$script_logs"		# datage fichier témoin 
-	(( protocol == -4 || protocol == -46 )) && [ -z "$ipv4" ] && ipv4=$( f_ip_pub -4 )				# 2e tentative éventuelle
-	(( protocol == -6 || protocol == -46 )) && [ -z "$ipv6" ] && ipv6=$( f_ip_priv "$ifname" -6 )	# 2e tentative éventuelle
+	# shellcheck disable=SC2221,SC2222
+	case "$protocol" in
+		-4 | -46 ) [ -z "$ipv4" ] && ipv4=$( f_ip_pub -4 ) ;;&				# 2e tentative éventuelle
+		-6 | -46 ) [ -z "$ipv6" ] && ipv6=$( f_ip_priv "$ifname" -6 ) ;;&	# 2e tentative éventuelle
+	esac
 	[ "$ipv4" ] && send_mail --ip "ipv4: $ipv4" 
 	[ "$ipv6" ] && send_mail --ip "ipv6: $ipv6"
 	[ "$mail_enable" == true ] && send_mail --final
@@ -905,7 +916,7 @@ usage(){		# 01/06/2018
 
 	if (( ${#dynDns[@]} > 0 )); then pluriel="s"; else unset pluriel ; fi
 	cat <<- end
-	  usage :  ${BLUE}$script [options]${STD}
+	  usage :  ${BLUE}$script [options]${STD}        ( ${RED}les options et les arguments doivent etre séparés par 1 espace$STRD )
 	
 	${BLUE}    sans option  ${STD}: tous les services configurés sont vérifiés et une éventuelle nouvelle 
 	                   adresse IP est publiée si changement $RED(root requis)${STD}
@@ -971,7 +982,7 @@ usage_version(){		# 27/04/2018
   | | '_ \| | | | '_ \ / _' |/ _' | __/ _ \  
   | | |_) | |_| | |_) | (_| | (_| | ||  __/  
   |_| .__/ \__,_| .__/ \__,_|\__,_|\__\___|  $script_options
-    |_|         |_|  $RED v$version $date $STD      
+    |_|         |_|  $RED$version $date $STD      
 
 	end
 }
@@ -1018,8 +1029,13 @@ export PATH TERM
 
 dynDns_base="duckdns / dynu / freemyip / hn / noip"
 user_agent="$script/$version"
-[[ ! "-${protocol#-}" =~ [-46] ]] && protocol="-46"
-case "$protocol" in -4 | -6 | -46 ) ;; * ) protocol="-4" ;; esac
+
+case "$protocol" in
+	-4 | -6 | -46 ) ;;
+	-64 ) protocol="-46" ;;
+	  * ) protocol=$( f_ip_proto_detect ) ;;
+esac
+
 	# test logs_path
 if ! touch -a "$logs_path/$script_logs" 2>/dev/null; then		# /var/log/$script_logs non accessible en écriture
 	if touch -a "$dirscript/$script_logs"; then					# essai sur $dirscript
