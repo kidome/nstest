@@ -1,4 +1,4 @@
-# makefile version 1.3
+# makefile version 1.4
 
 script = 'nstest'
 version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
@@ -33,11 +33,13 @@ git: lint badge
 	@ echo
 	@ echo "  make git $(version)"
 	@ echo
-	@ git tag $(version)		# permet de vérifier aussi si le versioning n'est pas existant
 	@ git add .
 	@ git commit -m "release $(version)"
+	@ git push
+	@ echo "  git add . & commit -m <version> & git push : OK"
+	@ git tag $(version)
 	@ git push --tags 
-	@ echo "  git tag <version> & add . & commit -m <version> & git push --tag : OK"
+	@ echo "  git tag <version> & git push --tag : OK"
 	@ echo
 
 badge: 
