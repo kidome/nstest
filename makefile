@@ -1,4 +1,4 @@
-# makefile version 1.2
+# makefile version 1.3
 
 script = 'nstest'
 version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
@@ -6,13 +6,13 @@ version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
 all: lint badge
 	@ echo "  make $(script) $(version)"
 	@ echo
-#~ 	@ echo '  make pack    : shellcheck & makerun (makeself)'
+	@ if [ -x ./makerun ]; then echo '  make pack    : shellcheck & makerun makeself'; fi
 	@ echo '  make lint    : shellcheck'
 	@ echo '  make git     : git tag <version> & add . & commit -m <version> & git push --tag'
 	@ echo
-	@ echo "  simulation:"
-	@ git add -n .
-	@ echo
+#~ 	@ echo "  simulation:"
+#~ 	@ git add -n .
+#~ 	@ echo
 	@ echo "  git status:"
 	@ git status
 	@ echo
@@ -22,8 +22,9 @@ all: lint badge
 pack: lint
 	@ echo "  make release $(version)"
 	@ echo
-	@ ./makerun
-	@ echo '  pour finir, git add & git commit & make git'
+	@ if [ -x ./makerun ]; then ./makerun ; fi
+	@ if [ -x ./makerun ]; then echo '  pour finir, git add & git commit & make git' ; fi
+	@ if [ ! -x ./makerun ]; then echo '  no .run file' ; fi
 	@ echo
 	@ git status
 	@ echo
@@ -33,7 +34,6 @@ git: lint badge
 	@ echo "  make git $(version)"
 	@ echo
 	@ git tag $(version)		# permet de vérifier aussi si le versioning n'est pas existant
-
 	@ git add .
 	@ git commit -m "release $(version)"
 	@ git push --tags 
@@ -42,6 +42,8 @@ git: lint badge
 
 badge: 
 	@ sed -Ei "s#^!\[version:.*shields\.io.*#![version: $(version)](https://img.shields.io/badge/version-$(version)-blue.svg?longCache=true\&style=for-the-badge)#" README.md
+	@ echo '  bagde updated in readme'
+	@ echo
 
 lint: 
 	@ echo
