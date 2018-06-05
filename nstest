@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.6.2
+version=1.6.3
 script="nstest"
-date="03/06/2018"
+date="05/06/2018"
 #~ contact="irc:freenode.net##sdeb"
 
 if ! command -v sort > /dev/null; then
@@ -130,13 +130,6 @@ assign_variables(){		# 01/06/2018
 	domains_qty=${#domains_test[@]}
 }
 
-	# $1 message to display
-die(){		# 31/05/2018
-	echo "  Fatal: $1"
-	echo
-	exit 1
-}
-
 	# détermination dirname et basename avec suivi lien éventuel, assigne $dirscript & $basescript
 f__basedirname(){		# 28/04/2018
 
@@ -144,6 +137,13 @@ f__basedirname(){		# 28/04/2018
 	# shellcheck disable=SC2034
 	basescript=${dirscript##*/}			# scriptname
 	dirscript=${dirscript%/*}			# /path/from/root/
+}
+
+	# $1 message to display
+f__die(){		# 05/06/2018
+
+	echo -e "\\n  Fatal: $1"
+	exit 1
 }
 
 	# display the ip protocol of the network layer: -4|-6|-46
@@ -161,6 +161,21 @@ f_ip_proto_detect(){		# 01/06/2018
 	done <<< "$protoPossible"
 	case "$protocol" in -4-6* | -6-4* ) protocol="-46" ;; esac
 	echo "$protocol"
+}
+
+	# $1 temps en secondes, affiche conversion en jours, h, mn, s
+f__sec2day(){		# 05/05/2018
+	local j h mn sec display
+
+	  j=$(( $1 / (24*3600) ))
+	  h=$(( ($1 % (24*3600)) / 3600 ))
+	 mn=$(( (($1 % (24*3600)) % 3600) / 60 ))
+	sec=$(( (($1 % (24*3600)) % 3600) % 60 ))
+	(( j != 0)) && display+="$j jours "
+	(( h != 0)) && display+="$h h "
+	(( mn != 0)) && display+="$mn mn "
+	(( sec != 0)) && display+="$sec s "
+	echo "${display% }"
 }
 
 	# $1: ip to analyze, display protocol -4|-6|0
@@ -200,7 +215,7 @@ getTime(){	# 25/05/2018
 			time2=$(( $sec$ms-gTime ))
 			echo "${time2::-3}.${time2: -3} s"		# sec avec virgule
 		elif [[ "$*" =~ "auto" ]] && (( ( $sec$ms-gTime ) >= 10000 )); then
-			get_sec2day "$(( sec-${gTime::-3} ))"
+			f__sec2day "$(( sec-${gTime::-3} ))"
 		else
 			echo "$(( $sec$ms-gTime )) ms"
 		fi
@@ -209,23 +224,8 @@ getTime(){	# 25/05/2018
 	fi
 }
 
-	# $1 temps en secondes, affiche conversion en jours, h, mn, s
-get_sec2day(){		# 05/05/2018
-	local j h mn sec display
-
-	  j=$(( $1 / (24*3600) ))
-	  h=$(( ($1 % (24*3600)) / 3600 ))
-	 mn=$(( (($1 % (24*3600)) % 3600) / 60 ))
-	sec=$(( (($1 % (24*3600)) % 3600) % 60 ))
-	(( j != 0)) && display+="$j jours "
-	(( h != 0)) && display+="$h h "
-	(( mn != 0)) && display+="$mn mn "
-	(( sec != 0)) && display+="$sec s "
-	echo "${display% }"
-}
-
 	# assign ${nameservers4[@]}, ${nameservers6[@]}, [$1=file where are name's server], by default, resolv.conf is readed
-readingResolv(){		# 01/06/2018
+readingFileNs(){		# 01/06/2018
 	local a ip ns 
 
 	unset nameservers
@@ -263,7 +263,7 @@ script_get_version(){		# 01/06/2018
 	if [ "$1" ]; then
 		temp="$1"		# version fichier
 	else
-		! temp=$( curl --silent --show-error "$url_script" ) && die "error getting script online version"
+		! temp=$( curl --silent --show-error "$url_script" ) && f__die "error getting script online version"
 	fi
 	temp=${temp#*version=}
 	read -r online_version <<< "$temp"
@@ -275,15 +275,15 @@ script_get_version(){		# 01/06/2018
 script_upgrade(){		# 01/06/2018
 
 	if [ ! -w "$dirscript/$script" ]; then
-		[ "$EUID" -ne 0 ] && die "fatal error: the upgrade must be made in root"
+		[ "$EUID" -ne 0 ] && f__die "fatal error: the upgrade must be made in root"
 	fi
-	! curl --silent --show-error -o "/tmp/$script" "$url_script" && die "error loading script (curl $?)"
+	! curl --silent --show-error -o "/tmp/$script" "$url_script" && f__die "error loading script (curl $?)"
 	if grep -q '^### END CONTROL' "/tmp/$script"; then 
 		script_get_version "$( < "/tmp/$script" )"
 		mv "/tmp/$script" "$dirscript/$script"
 		chmod 775 "$dirscript/$script"
 	else
-		die "failure update, incomplete download"
+		f__die "failure update, incomplete download"
 	fi
 	rm "/tmp/$script" 2>/dev/null
 	echo
@@ -607,7 +607,7 @@ while (( $# )) ; do
 	shift
 done
 
-readingResolv "$dnsfile"
+readingFileNs "$dnsfile"
 assign_variables
 
 case "$protocol" in
