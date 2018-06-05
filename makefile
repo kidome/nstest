@@ -8,7 +8,7 @@ all: lint badge
 	@ echo
 	@ if [ -x ./makerun ]; then echo '  make pack    : shellcheck & makerun makeself'; fi
 	@ echo '  make lint    : shellcheck'
-	@ echo '  make git     : git tag <version> & add . & commit -m <version> & git push --tag'
+	@ echo '  make git     : badge readme & git tag <version> & add . & commit -m <version> & git push --tag'
 	@ echo
 #~ 	@ echo "  simulation:"
 #~ 	@ git add -n .
