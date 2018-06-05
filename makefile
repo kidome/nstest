@@ -1,9 +1,9 @@
-# makefile version 1.0 
+# makefile version 1.2
 
 script = 'nstest'
 version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
 
-all: lint
+all: lint badge
 	@ echo "  make $(script) $(version)"
 	@ echo
 #~ 	@ echo '  make pack    : shellcheck & makerun (makeself)'
@@ -23,23 +23,25 @@ pack: lint
 	@ echo "  make release $(version)"
 	@ echo
 	@ ./makerun
-#~ 	@ [ -x ./makerun ] && ./makerun
-#~ 	@ [ -x ./makerun ] && echo '  makerun fait'
 	@ echo '  pour finir, git add & git commit & make git'
 	@ echo
 	@ git status
 	@ echo
 
-git: lint
+git: lint badge
 	@ echo
 	@ echo "  make git $(version)"
 	@ echo
 	@ git tag $(version)		# permet de vérifier aussi si le versioning n'est pas existant
+
 	@ git add .
 	@ git commit -m "release $(version)"
 	@ git push --tags 
 	@ echo "  git tag <version> & add . & commit -m <version> & git push --tag : OK"
 	@ echo
+
+badge: 
+	@ sed -Ei "s#^!\[version:.*shields\.io.*#![version: $(version)](https://img.shields.io/badge/version-$(version)-blue.svg?longCache=true\&style=for-the-badge)#" README.md
 
 lint: 
 	@ echo
