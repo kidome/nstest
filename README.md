@@ -149,4 +149,4 @@ some servers, outside OpenNic, resolve alternative domain names, today: level3 &
 * [LPRAB / WTFPL](https://framagit.org/sdeb/nstest/blob/master/LICENSE.md)
 
 
-https://framaclic.org/h/nestest-gif
+![compteur](https://framaclic.org/h/nestest-gif)
