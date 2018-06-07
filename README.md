@@ -2,9 +2,8 @@
 
 
 ![version: 1.6.3](https://img.shields.io/badge/version-1.6.3-blue.svg?longCache=true&style=for-the-badge)
-![bash langage](https://img.shields.io/badge/bash-version4-brightgreen.svg)
-![status](https://img.shields.io/badge/status-release-green.svg)
-![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg)
+![bash langage](https://img.shields.io/badge/bash-4-brightgreen.svg?longCache=true&style=for-the-badge)
+![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg?longCache=true&style=for-the-badge)
 
 
 This script tests several open DNS servers and/or servers which names must be present in `resolv.conf` or in another file.   
@@ -148,3 +147,6 @@ some servers, outside OpenNic, resolve alternative domain names, today: level3 &
 ## license
 
 * [LPRAB / WTFPL](https://framagit.org/sdeb/nstest/blob/master/LICENSE.md)
+
+
+https://framaclic.org/h/nestest-gif
