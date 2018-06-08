@@ -1,18 +1,15 @@
-# makefile version 1.4
+# makefile version 1.5
 
-script = 'nstest'
+script='nstest'
 version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
 
-all: lint badge
+all: lint badge tag
 	@ echo "  make $(script) $(version)"
 	@ echo
 	@ if [ -x ./makerun ]; then echo '  make pack    : shellcheck & makerun makeself'; fi
 	@ echo '  make lint    : shellcheck'
 	@ echo '  make git     : badge readme & git tag <version> & add . & commit -m <version> & git push --tag'
 	@ echo
-#~ 	@ echo "  simulation:"
-#~ 	@ git add -n .
-#~ 	@ echo
 	@ echo "  git status:"
 	@ git status
 	@ echo
@@ -29,7 +26,7 @@ pack: lint
 	@ git status
 	@ echo
 
-git: lint badge
+git: badge tag
 	@ echo
 	@ echo "  make git $(version)"
 	@ echo
@@ -51,4 +48,10 @@ lint:
 	@ echo
 	@ shellcheck -x $(script)
 	@ echo '  shellcheck ok'
+	@ echo
+
+tag:
+	@ git tag $(version) 		# test si tag (donc version) existant, donc sortie si existant
+	@ git tag -d $(version)		# effacement et reprise flow normal
+	@ echo 'tag ok'
 	@ echo
