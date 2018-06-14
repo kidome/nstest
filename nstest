@@ -7,10 +7,10 @@
 #    contributeurs: kyodev
 #####
 
-version=1.6.3
+version=1.6.4
 script="nstest"
-date="05/06/2018"
-#~ contact="irc:freenode.net##sdeb"
+date="14/06/2018"
+#contact="IRC ##sdeb@freenode.net ou https://framagit.org/sdeb/nstest/issues"
 
 if ! command -v sort > /dev/null; then
 	echo -e "'sort' not found, install coreutils if you want a sorted report\\n"
@@ -225,8 +225,8 @@ getTime(){	# 25/05/2018
 }
 
 	# assign ${nameservers4[@]}, ${nameservers6[@]}, [$1=file where are name's server], by default, resolv.conf is readed
-readingFileNs(){		# 01/06/2018
-	local a ip ns 
+readingFileNs(){		# 14/06/2018
+	local a ip ns title
 
 	unset nameservers
 	if [ "$1" ]; then
