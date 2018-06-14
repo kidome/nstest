@@ -1,4 +1,4 @@
-# makefile version 1.5
+# makefile version 1.6
 
 script='nstest'
 version = ` grep -m1 'version=' $(script) | cut -d'=' -f2 `
@@ -51,7 +51,7 @@ lint:
 	@ echo
 
 tag:
-	@ git tag $(version) 		# test si tag (donc version) existant, donc sortie si existant
-	@ git tag -d $(version)		# effacement et reprise flow normal
-	@ echo 'tag ok'
+	@ git tag $(version) 2>&1 1>/dev/null		# test si tag (donc version) existant, donc sortie si existant
+	@ git tag -d $(version) 2>&1 1>/dev/null		# effacement et reprise flow normal
+	@ echo '  tag ok'
 	@ echo
