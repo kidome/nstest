@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.6.4
+version=1.6.5
 script="nstest"
-date="14/06/2018"
+date="16/06/2018"
 #contact="IRC ##sdeb@freenode.net ou https://framagit.org/sdeb/nstest/issues"
 
 if ! command -v sort > /dev/null; then
@@ -19,7 +19,7 @@ if command -v dig > /dev/null; then
 	dig=dig
 elif command -v drill > /dev/null; then
 	dig=drill
-	echo -e "'dill' is terribly slower (no management timeout), for frequent use, install dig (dnsutils) \\n"
+	echo -e "'drill' is terribly slower (no management timeout), for frequent use, install dig (dnsutils) \\n"
 else
 	echo "dig (and drill) not found,  install it with dnsutils"
 	exit 1

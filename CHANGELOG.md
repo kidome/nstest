@@ -5,6 +5,12 @@ the date in format: YYYY-MM-DD
 
 ## [Unreleased]
 
+
+
+## [1.6.5] - 2018.06.16
+
+* cosmetic: typo on warning of drill
+
 ## [1.6.4] - 2018.06.14
 * fixed: variable locale dans readingFileNs()
 
