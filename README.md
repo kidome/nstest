@@ -1,7 +1,7 @@
 # nstest
 
 
-![version: 1.6.5](https://img.shields.io/badge/version-1.6.5-blue.svg?longCache=true&style=for-the-badge)
+![version: 1.7.0](https://img.shields.io/badge/version-1.7.0-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-4-brightgreen.svg?longCache=true&style=for-the-badge)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg?longCache=true&style=for-the-badge)
 
@@ -20,32 +20,35 @@ It can be exported the report on a pastebin for easy exchange.
 
 ## usage
 
+```shell
+./nstest -h 
+```
 ```text
              _            _   
    _ __  ___| |_ ___  ___| |_ 
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| -h
-        version: 1.6 02/06/2018
+        version: 1.7.0 18/06/2018
 
   usage:  nstest [options]        ( options and arguments must be SEPARATED by one space )
 
-    -4, -6, -46   : protocols to use: ipv4, ipv6, ipv4 & ipv6. by default, the protocol(s) used in the net layer 
-        --bench   : run with all lists of domains to test
-        --dev     : use dev branch for update or for version number
-        --drill   : drill is forced if existing, otherwise dig has priority 
-    -e, --export  : export on a pastebin
-    -c, --compress: no extended report, only time averages
-    -d, --domains : choice between 3 test domain lists: base (defaut), alt, atld, or easy 
-    -f, --file    : the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
-        --nodns   : only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
-        --noresolv: the file /etc/resolv.conf is not read, implied with --file
-        --nosort  : no sorted report on average column
-        --opt     : print list of dns servers and domains used for tests
-    -h, --help    : this help
-    -s, --sort    : sort on domain number
-    -u, --upgrade : load and replace the script in place
-    -v, --version : version of the script online and in place
+    -4, -6, -46    : protocols to use: ipv4, ipv6, ipv4 & ipv6. by default, the protocol(s) used in the net layer 
+        --bench    : run with all lists of domains to test
+        --dev      : use dev branch for update or for version number
+        --drill    : drill is forced if existing, otherwise dig has priority (or host if existing)
+    -e, --export   : export on a pastebin, the file nstest_report.md created for that
+    -c, --compress : no extended report, only time averages
+    -d, --domains  : choice between 3 test domain lists: base (defaut), alt, atld, or easy 
+    -f, --file     : the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
+        --nodns    : only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
+        --noresolv : the file /etc/resolv.conf is not read, implied with --file
+        --nosort   : no sorted report on average column
+        --opt      : print list of dns servers and domains used for tests
+    -h, --help     : this help
+    -s, --sort     : sort on domain number
+    -u, --upgrade  : load and replace the script in place
+    -v, --version  : version of the script online and in place
 
   examples:
       ./ntest                    : full report, with nameservers in /etc/resolv.conf and few open DNS servers

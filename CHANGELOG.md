@@ -1,11 +1,17 @@
 # nstest changelog
 
-tags utilisés: added  changed  cosmetic  deprecated  fixed  rewriting  removed  syncro  security
+tags utilisés: added  changed  cosmetic  deprecated  fixed  new rewriting  removed  syncro  security
 the date in format: YYYY-MM-DD
 
 ## [Unreleased]
 
 
+
+## [1.7.0] - 2018.06.18
+
+* cosmetic: color, renamming script_get_version -> script_get_vers, usage
+* cosmetic: usage
+* added: -c option has priority, supersedes -s option  
 
 ## [1.6.5] - 2018.06.16
 

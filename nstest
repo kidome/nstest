@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.6.5
+version=1.7.0
 script="nstest"
-date="16/06/2018"
+date="18/06/2018"
 #contact="IRC ##sdeb@freenode.net ou https://framagit.org/sdeb/nstest/issues"
 
 if ! command -v sort > /dev/null; then
@@ -139,6 +139,30 @@ f__basedirname(){		# 28/04/2018
 	dirscript=${dirscript%/*}			# /path/from/root/
 }
 
+# shellcheck disable=SC2034
+f__color(){		# 29/05/2018
+
+	if type -p tput &>/dev/null && tput setaf 1 &>/dev/null; then
+		MAGENTA=$( tput setaf 5 )
+		  BLACK=$( tput setaf 0 )
+		   CYAN=$( tput setaf 6 )
+		 YELLOW=$( tput setaf 3 )		# question
+		  GREEN=$( tput setaf 2 )		# ok
+		   BLUE=$( tput setaf 4 )		# info
+			RED=$( tput setaf 1 )		# alerte
+			STD=$( tput sgr0 )			# retour "normal"
+		BOLD=$( tput bold )
+		ITAL=$( tput sitm )
+		SOUL=$( tput smul )
+	else 
+		YELLOW=$'\033[0;33m'		# ?
+		 GREEN=$'\033[0;32m'		# ok
+		  BLUE=$'\033[0;34m'		# info
+		   RED=$'\033[0;31m'		# alerte
+		   STD=$'\033[0m'			# standard
+	fi
+}
+
 	# $1 message to display
 f__die(){		# 05/06/2018
 
@@ -257,7 +281,7 @@ readingFileNs(){		# 14/06/2018
 }
 
 	# $1 téléchargement déjà fait, assigne $online_version
-script_get_version(){		# 01/06/2018
+script_get_vers(){		# 18/06/2018 SPÉCIFIQUE
 	local temp  
 
 	if [ "$1" ]; then
@@ -272,14 +296,14 @@ script_get_version(){		# 01/06/2018
 	echo -e "  online version: $GREEN$online_version$STD \\n"
 }
 
-script_upgrade(){		# 01/06/2018
+script_upgrade(){		# 18/06/2018 SPÉCIFIQUE
 
 	if [ ! -w "$dirscript/$script" ]; then
 		[ "$EUID" -ne 0 ] && f__die "fatal error: the upgrade must be made in root"
 	fi
 	! curl --silent --show-error -o "/tmp/$script" "$url_script" && f__die "error loading script (curl $?)"
 	if grep -q '^### END CONTROL' "/tmp/$script"; then 
-		script_get_version "$( < "/tmp/$script" )"
+		script_get_vers "$( < "/tmp/$script" )"
 		mv "/tmp/$script" "$dirscript/$script"
 		chmod 775 "$dirscript/$script"
 	else
@@ -289,38 +313,38 @@ script_upgrade(){		# 01/06/2018
 	echo
 }
 
-usage(){		# 03/06/2018
+usage(){		# 18/06/2018
 
 	cat <<- end
 	  usage:  ${BLUE}$script [options]${STD}        ( ${RED}options and arguments must be SEPARATED by one space$STRD )
 
-	${BLUE}    -4, -6, -46   ${STD}: protocols to use: ipv4, ipv6, ipv4 & ipv6. by default, the protocol(s) used in the net layer 
-	${BLUE}        --bench   ${STD}: run with all lists of domains to test
-	${BLUE}        --dev     ${STD}: use dev branch for update or for version number
-	${BLUE}        --drill   ${STD}: drill is forced if existing, otherwise dig has priority 
-	${BLUE}    -e, --export  ${STD}: export on a pastebin, the file ${script}_report.md created for that
-	${BLUE}    -c, --compress${STD}: no extended report, only time averages
-	${BLUE}    -d, --domains ${STD}: choice between 3 test domain lists: base (defaut), alt, atld, or easy 
-	${BLUE}    -f, --file    ${STD}: the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
-	${BLUE}        --nodns   ${STD}: only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
-	${BLUE}        --noresolv${STD}: the file /etc/resolv.conf is not read, implied with --file
-	${BLUE}        --nosort  ${STD}: no sorted report on average column
-	${BLUE}        --opt     ${STD}: print list of dns servers and domains used for tests
-	${BLUE}    -h, --help    ${STD}: this help
-	${BLUE}    -s, --sort    ${STD}: sort on domain number
-	${BLUE}    -u, --upgrade ${STD}: load and replace the script in place
-	${BLUE}    -v, --version ${STD}: version of the script online and in place
+	${BLUE}    -4, -6, -46    :${STD} protocols to use: ipv4, ipv6, ipv4 & ipv6. by default, the protocol(s) used in the net layer 
+	${BLUE}        --bench    :${STD} run with all lists of domains to test
+	${BLUE}        --dev      :${STD} use dev branch for update or for version number
+	${BLUE}        --drill    :${STD} drill is forced if existing, otherwise dig has priority (or host if existing)
+	${BLUE}    -e, --export   :${STD} export on a pastebin, the file ${script}_report.md created for that
+	${BLUE}    -c, --compress :${STD} no extended report, only time averages
+	${BLUE}    -d, --domains  :${STD} choice between 3 test domain lists: base (defaut), alt, atld, or easy 
+	${BLUE}    -f, --file     :${STD} the ip in <file> are tested, replace /etc/resolv.conf. format: ip[ # name] per line
+	${BLUE}        --nodns    :${STD} only the nameservers in /etc/resolv.conf or in <file> are tested, no other dns servers used 
+	${BLUE}        --noresolv :${STD} the file /etc/resolv.conf is not read, implied with --file
+	${BLUE}        --nosort   :${STD} no sorted report on average column
+	${BLUE}        --opt      :${STD} print list of dns servers and domains used for tests
+	${BLUE}    -h, --help     :${STD} this help
+	${BLUE}    -s, --sort     :${STD} sort on domain number (if no -c option)
+	${BLUE}    -u, --upgrade  :${STD} load and replace the script in place
+	${BLUE}    -v, --version  :${STD} version of the script online and in place
 
 	  examples:
-	${BLUE}      ./ntest                    ${STD}: full report, with nameservers in /etc/resolv.conf and few open DNS servers
-	${BLUE}      ./ntest --nodns --compress ${STD}: report with only averages with only nameservers in /etc/resolv.conf
-	${BLUE}      ./ntest -e  --noresolv     ${STD}: export on a pastebin, to exchange a test
-	${BLUE}      ./ntest --noresolv -d easy ${STD}: full report, with domains to test easy, performances are better (responses in cache DNS)
-	${BLUE}      ./ntest -h  -d alt         ${STD}: this help, with domain list alt(ernative)
-	${BLUE}      ./ntest --opt              ${STD}: displays all parameters
-	${BLUE}      ./ntest --sort 5           ${STD}: sort on domain number 5
-	${BLUE}      ./ntest --bench --noresolv ${STD}: bench for all open DNS, protocols configured in the net layer 
-	${BLUE}      ./ntest --bench --nodns    ${STD}: bench for names's servers in resolv.conf, protocols configured in the net layer 
+	${BLUE}      ./ntest                    :${STD} full report, with nameservers in /etc/resolv.conf and few open DNS servers
+	${BLUE}      ./ntest --nodns --compress :${STD} report with only averages with only nameservers in /etc/resolv.conf
+	${BLUE}      ./ntest -e  --noresolv     :${STD} export on a pastebin, to exchange a test
+	${BLUE}      ./ntest --noresolv -d easy :${STD} full report, with domains to test easy, performances are better (responses in cache DNS)
+	${BLUE}      ./ntest -h  -d alt         :${STD} this help, with domain list alt(ernative)
+	${BLUE}      ./ntest --opt --noresolv   :${STD} displays all parameters, without resolv.conf
+	${BLUE}      ./ntest --sort 5           :${STD} sort on domain number 5
+	${BLUE}      ./ntest --bench --noresolv :${STD} bench for all open DNS, protocols configured in the net layer 
+	${BLUE}      ./ntest --bench --nodns    :${STD} bench for names's servers in resolv.conf, protocols configured in the net layer 
 
 	  more info: ${GREEN}$url_notice${STD}
 
@@ -328,27 +352,16 @@ usage(){		# 03/06/2018
 }
 
 # shellcheck disable=SC1117
-usage_version(){		# 01/06/2018
+usage_version(){		# 18/06/2018
 
-	if type -p tput &>/dev/null && tput setaf 1 &>/dev/null; then
-		  GREEN=$( tput setaf 2 )		# ok
-		   BLUE=$( tput setaf 4 )		# info
-			RED=$( tput setaf 1 )		# alerte
-			STD=$( tput sgr0 )			# retour "normal"
-	else 
-		 GREEN=$'\033[0;32m'		# ok
-		  BLUE=$'\033[0;34m'		# info
-		   RED=$'\033[0;31m'		# alerte
-		   STD=$'\033[0m'			# standard
-	fi
-
+	echo -n "$BLUE"
 	cat <<- end
 	             _            _   
 	   _ __  ___| |_ ___  ___| |_ 
 	  | '_ \/ __| __/ _ \/ __| __|
 	  | | | \__ \ ||  __/\__ \ |_ 
-	  |_| |_|___/\__\___||___/\__| $script_options
-	        version: $GREEN$version $date$STD
+	  |_| |_|___/\__\___||___/\__| $STD$script_options$BLUE
+	        version: $YELLOW$version $date$STD
 	
 	end
 }
@@ -577,6 +590,7 @@ url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nst
 #######  options processing ----------------------------------------------------
 
 f__basedirname
+f__color
 script_options="$*"
 usage_version
 testsarray="base"
@@ -607,6 +621,7 @@ while (( $# )) ; do
 	shift
 done
 
+[ "$compress" ] && unset dtos
 readingFileNs "$dnsfile"
 assign_variables
 
@@ -633,7 +648,7 @@ for i in "${options[@]}" ; do
 	case "$i" in
 		     --opt      ) z_options ; exit ;;
 		-u | --upgrade  )   script_upgrade   ; exit ;;
-		-v | --version  )   script_get_version; exit ;;
+		-v | --version  )   script_get_vers; exit ;;
 		-h | --help | * ) usage ; exit ;;
 	esac
 done
