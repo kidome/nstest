@@ -7,6 +7,10 @@ the date in format: YYYY-MM-DD
 
 
 
+## [1.8.0] - 2018.06.20
+
+* rewriting: script_get_version, script_upgrade
+
 ## [1.7.0] - 2018.06.18
 
 * cosmetic: color, renamming script_get_version -> script_get_vers, usage

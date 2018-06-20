@@ -1,7 +1,7 @@
 # nstest
 
 
-![version: 1.7.0](https://img.shields.io/badge/version-1.7.0-blue.svg?longCache=true&style=for-the-badge)
+![version: 1.8.0](https://img.shields.io/badge/version-1.8.0-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-4-brightgreen.svg?longCache=true&style=for-the-badge)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg?longCache=true&style=for-the-badge)
 
@@ -29,7 +29,7 @@ It can be exported the report on a pastebin for easy exchange.
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| -h
-        version: 1.7.0 18/06/2018
+        version: 1.8.0 20/06/2018
 
   usage:  nstest [options]        ( options and arguments must be SEPARATED by one space )
 
@@ -144,7 +144,7 @@ some servers, outside OpenNic, resolve alternative domain names, today: level3 &
 
 ## sources
 
-[framagit (gitlab) (framasoft service)](https://framagit.org/sdeb/nstest/blob/master/README.md#nstest)
+[framagit (gitlab) (framasoft service)](https://framagit.org/sdeb/nstest/blob/master/nstest)
 
 
 ## license

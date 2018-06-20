@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.7.0
+version=1.8.0
 script="nstest"
-date="18/06/2018"
+date="20/06/2018"
 #contact="IRC ##sdeb@freenode.net ou https://framagit.org/sdeb/nstest/issues"
 
 if ! command -v sort > /dev/null; then
@@ -164,9 +164,9 @@ f__color(){		# 29/05/2018
 }
 
 	# $1 message to display
-f__die(){		# 05/06/2018
+f__die(){		# 20/06/2018
 
-	echo -e "\\n  Fatal: $1"
+	echo -e "\\n  ${RED}Fatal$STD: $1\\n"
 	exit 1
 }
 
@@ -280,32 +280,37 @@ readingFileNs(){		# 14/06/2018
 	fi
 }
 
-	# $1 téléchargement déjà fait, assigne $online_version
-script_get_vers(){		# 18/06/2018 SPÉCIFIQUE
-	local temp  
+	# [$1 fichier existant], assigne $online_version et/ou affiche version installée si existant, version en ligne
+script_get_version(){		# 20/06/2018-2
+	local temp 
 
 	if [ "$1" ]; then
-		temp="$1"		# version fichier
+		[ -e "$1" ] && temp=$( < "$1" ) ||  temp="$1"		# fichier ou variable
 	else
-		! temp=$( curl --silent --show-error "$url_script" ) && f__die "error getting script online version"
+		! temp=$( curl --silent --show-error "$url_script" ) && f__die "erreur obtention version script en ligne"
 	fi
 	temp=${temp#*version=}
-	read -r online_version <<< "$temp"
-	[[ "${online_version:0:1}" =~ [0-9] ]] || online_version="${RED}n/a"
+	read -r <<< "$temp"
+	[[ "${REPLY:0:1}" =~ [0-9] ]] || REPLY="${RED}n/a$STD"
+	[ "$1" ] && echo "$REPLY" ||  online_version="$REPLY"
 	[ "$1" ] && return 0
-	echo -e "  online version: $GREEN$online_version$STD \\n"
+	# shellcheck disable=SC2154
+	[ "$script_install" ] && echo "$BLUE  script en place: $GREEN$( script_get_version "$script_install" )$STD"
+	echo -e "$BLUE  script en ligne: $YELLOW$online_version$STD"
 }
 
-script_upgrade(){		# 18/06/2018 SPÉCIFIQUE
+script_upgrade(){		# 20/06/2018
+	local tolog msg
 
-	if [ ! -w "$dirscript/$script" ]; then
-		[ "$EUID" -ne 0 ] && f__die "fatal error: the upgrade must be made in root"
-	fi
+	type -t f__log &>/dev/null && tolog="yes"
+	[ ! -w "$dirscript/$script" ] && f__die "the upgrade must be made in root"
 	! curl --silent --show-error -o "/tmp/$script" "$url_script" && f__die "error loading script (curl $?)"
 	if grep -q '^### END CONTROL' "/tmp/$script"; then 
-		script_get_vers "$( < "/tmp/$script" )"
+		version_enplace=$( script_get_version "$( < "$dirscript/$script" )" )
 		mv "/tmp/$script" "$dirscript/$script"
 		chmod 775 "$dirscript/$script"
+		msg="  $script mis à jour en version $version_enplace"
+		[ "$tolog" ] && f__log "$msg" --disp || echo "$msg"
 	else
 		f__die "failure update, incomplete download"
 	fi
@@ -646,9 +651,9 @@ esac
 	# actions
 for i in "${options[@]}" ; do
 	case "$i" in
-		     --opt      ) z_options ; exit ;;
-		-u | --upgrade  )   script_upgrade   ; exit ;;
-		-v | --version  )   script_get_vers; exit ;;
+		     --opt      ) z_options; exit ;;
+		-u | --upgrade  ) script_upgrade; echo ; exit    ;;
+		-v | --version  ) script_get_version; echo; exit ;;
 		-h | --help | * ) usage ; exit ;;
 	esac
 done
