@@ -1,7 +1,7 @@
 # nstest
 
 
-![version: 1.8.0](https://img.shields.io/badge/version-1.8.0-blue.svg?longCache=true&style=for-the-badge)
+![version: 1.9.0](https://img.shields.io/badge/version-1.9.0-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-4-brightgreen.svg?longCache=true&style=for-the-badge)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg?longCache=true&style=for-the-badge)
 
@@ -29,7 +29,7 @@ It can be exported the report on a pastebin for easy exchange.
   | '_ \/ __| __/ _ \/ __| __|
   | | | \__ \ ||  __/\__ \ |_ 
   |_| |_|___/\__\___||___/\__| -h
-        version: 1.8.0 20/06/2018
+        version: 1.9.0 22/06/2018
 
   usage:  nstest [options]        ( options and arguments must be SEPARATED by one space )
 
@@ -46,9 +46,13 @@ It can be exported the report on a pastebin for easy exchange.
         --nosort   : no sorted report on average column
         --opt      : print list of dns servers and domains used for tests
     -h, --help     : this help
-    -s, --sort     : sort on domain number
-    -u, --upgrade  : load and replace the script in place
-    -v, --version  : version of the script online and in place
+    -s, --sort     : sort on domain number (if no -c option)
+    -us            : load and replace the script in place
+    -v, --version  : version of the script online
+
+    -i, --install  : installation (root required)
+    -r, --remove   : uninstallation (root required)
+    -u, --upgrade  : download and update of installed script (root required)
 
   examples:
       ./ntest                    : full report, with nameservers in /etc/resolv.conf and few open DNS servers
@@ -56,7 +60,7 @@ It can be exported the report on a pastebin for easy exchange.
       ./ntest -e  --noresolv     : export on a pastebin, to exchange a test
       ./ntest --noresolv -d easy : full report, with domains to test easy, performances are better (responses in cache DNS)
       ./ntest -h  -d alt         : this help, with domain list alt(ernative)
-      ./ntest --opt              : displays all parameters
+      ./ntest --opt --noresolv   : displays all parameters, without resolv.conf
       ./ntest --sort 5           : sort on domain number 5
       ./ntest --bench --noresolv : bench for all open DNS, protocols configured in the net layer 
       ./ntest --bench --nodns    : bench for names's servers in resolv.conf, protocols configured in the net layer 
@@ -123,7 +127,6 @@ Depending on the domains, the response times may differ significantly
 ## license
 
 [LPRAB / WTFPL](https://framagit.org/sdeb/nstest/blob/master/LICENSE.md)
-
 
 
 ## bench

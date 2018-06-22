@@ -1,5 +1,30 @@
 # nstest benches
 
+## resolv bench
+ 
+             _            _   
+   _ __  ___| |_ ___  ___| |_ 
+  | '_ \/ __| __/ _ \/ __| __|
+  | | | \__ \ ||  __/\__ \ |_ 
+  |_| |_|___/\__\___||___/\__| --nodns
+        version: 1.9.0 22/06/2018
+
+                                    1:org   2:eu    3:fr    4:com   5:info  6:org   7:libre 8:net   9:io    10:sh       Average
+  ns0.fdn.fr (80.67.169.12)         8       9       9       9       9       9       -9      9       9       9            8.90 ms
+  cloudflare (1.1.1.1)              10      9       9       10      9       10      -9      9       9       10           9.40 ms
+  openNic ns10.fr (87.98.175.85)    12      12      12      12      12      12      12      13      12      12          12.10 ms
+  cloudflare (2606:4700:4700::1111) 10      10      10      10      10      10      -94     10      10      10          18.40 ms
+  google (2001:4860:4860::8888)     14      15      14      18      27      23      -15     25      31      22          20.40 ms
+
+  tested domains ('base' list):
+  1:debian.org 2:eurid.eu 3:free.fr 4:google.com 5:info.info 6:kernel.org 7:be.libre 8:ovh.net 9:packager.io 10:transfer.sh 
+      n/a indicates an inaccessible server, dash (-) indicates a domain not found 
+
+  execution time: 1884 ms	 (22/06/2018 15:23 +0200)
+
+
+
+## open DNS bench
 ```text
              _            _   
    _ __  ___| |_ ___  ___| |_ 

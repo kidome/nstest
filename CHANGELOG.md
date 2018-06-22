@@ -7,6 +7,14 @@ the date in format: YYYY-MM-DD
 
 
 
+## [1.9.0] - 2018.06.21
+
+* cosmetic: ,export, curl show error, renommage f_affichage
+* rewriting: script_get_version, script_upgrade
+* rewriting: functions' organizations
+* changed: option -u -> -us, update en place
+
+
 ## [1.8.0] - 2018.06.20
 
 * rewriting: script_get_version, script_upgrade

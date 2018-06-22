@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.8.0
+version=1.9.0
 script="nstest"
-date="20/06/2018"
+date="22/06/2018"
 #contact="IRC ##sdeb@freenode.net ou https://framagit.org/sdeb/nstest/issues"
 
 if ! command -v sort > /dev/null; then
@@ -170,6 +170,32 @@ f__die(){		# 20/06/2018
 	exit 1
 }
 
+	# $@=cmd à lancer en root avec su ou sudo. si sudo possible: prioritairesu su
+f__sudo(){		# 11/06/2018
+
+	if sudo -v &>/dev/null && [ $EUID -ne 0 ] ; then
+		sudo su --preserve-environment -c "$@"
+	else
+		echo -n "[su]   "
+		su --preserve-environment -c "$@"
+	fi
+}
+
+# shellcheck disable=SC1117
+f_affichage(){		# 18/06/2018
+
+	echo -n "$BLUE"
+	cat <<- end
+	             _            _   
+	   _ __  ___| |_ ___  ___| |_ 
+	  | '_ \/ __| __/ _ \/ __| __|
+	  | | | \__ \ ||  __/\__ \ |_ 
+	  |_| |_|___/\__\___||___/\__| $STD$script_options$BLUE
+	        version: $YELLOW$version $date$STD
+	
+	end
+}
+
 	# display the ip protocol of the network layer: -4|-6|-46
 f_ip_proto_detect(){		# 01/06/2018
 	local protoPossible noif if inet z protocol
@@ -280,8 +306,8 @@ readingFileNs(){		# 14/06/2018
 	fi
 }
 
-	# [$1 fichier existant], assigne $online_version et/ou affiche version installée si existant, version en ligne
-script_get_version(){		# 20/06/2018-2
+	# [$1 fichier existant], affiche version fichier si $1, assigne $online_version, $install_version et affiche version installée & version en ligne
+script_get_version(){		# 22/06/2018
 	local temp 
 
 	if [ "$1" ]; then
@@ -292,33 +318,73 @@ script_get_version(){		# 20/06/2018-2
 	temp=${temp#*version=}
 	read -r <<< "$temp"
 	[[ "${REPLY:0:1}" =~ [0-9] ]] || REPLY="${RED}n/a$STD"
-	[ "$1" ] && echo "$REPLY" ||  online_version="$REPLY"
+	if [ "$1" ]; then
+		echo "$REPLY"
+	else
+		online_version="$REPLY"
+	fi
 	[ "$1" ] && return 0
-	# shellcheck disable=SC2154
-	[ "$script_install" ] && echo "$BLUE  script en place: $GREEN$( script_get_version "$script_install" )$STD"
+
+	[ "$script_install" ] && echo "$BLUE  script installé: $GREEN$( script_get_version "$script_install" )$STD"
 	echo -e "$BLUE  script en ligne: $YELLOW$online_version$STD"
 }
 
-script_upgrade(){		# 20/06/2018
-	local tolog msg
+	# possible script_install_special()
+script_install(){		# 22/06/2018
+	local version_enplace
+
+	[[ "$dirscript" == "/opt/bin" ]] && f__die "this script his already installed"	# pas d'install sur soi
+	type -t script_install_special &>/dev/null && script_install_special
+
+		# script
+	mkdir -p /opt/bin/
+	version_enplace=$( script_get_version "$( < "$dirscript/$script" )" )
+	cp "$dirscript/$script" "$script_install"
+	chmod 775 "$script_install"
+	[ -e "$fileDev" ] || rm -f "$dirscript/$script"				# file filedev? if not, deletion
+	ln -s "$script_install" "/usr/bin/$script" &>/dev/null
 
 	type -t f__log &>/dev/null && tolog="yes"
-	[ ! -w "$dirscript/$script" ] && f__die "the upgrade must be made in root"
+	msg="  $script installé en version $version_enplace"
+	[ "$tolog" ] && f__log "$msg" --disp || echo "$msg"
+}
+
+	# possible script_uninstall_special()
+script_uninstall(){		# 22/06/2018
+
+	[ -f "$script_install" ] || f__die "script not installed"
+	type -t script_uninstall_special &>/dev/null && script_uninstall_special
+
+		# suppression script & lanceur
+	rm -f "$script_install"
+	unlink "/usr/bin/$script" &>/dev/null
+
+	type -t f__log &>/dev/null && tolog="yes"
+	msg="  $script désinstallé"
+	[ "$tolog" ] && f__log "$msg" --disp || echo "$msg"
+}
+
+	# [$1] message si update en place, possible script_upgrade_special()
+script_upgrade(){		# 22/06/2018
+	local tolog msg version_dl update_enPlace
+
+	[ "$1" ] && update_enPlace="update_enPlace"
+	type -t f__log &>/dev/null && tolog="yes"
+	type -t script_upgrade_special &>/dev/null && script_upgrade_special
 	! curl --silent --show-error -o "/tmp/$script" "$url_script" && f__die "error loading script (curl $?)"
 	if grep -q '^### END CONTROL' "/tmp/$script"; then 
-		version_enplace=$( script_get_version "$( < "$dirscript/$script" )" )
-		mv "/tmp/$script" "$dirscript/$script"
-		chmod 775 "$dirscript/$script"
-		msg="  $script mis à jour en version $version_enplace"
-		[ "$tolog" ] && f__log "$msg" --disp || echo "$msg"
+		version_dl=$( script_get_version "$( < "/tmp/$script" )" )
+		mv "/tmp/$script" "$script_install"
+		chmod 775 "$script_install"		# root proprio
+		msg="  $script mis à jour en version $version_dl"
+		[[ -z "$update_enPlace" && "$tolog" ]] && f__log "$msg" --disp || echo "$msg"
 	else
 		f__die "failure update, incomplete download"
 	fi
 	rm "/tmp/$script" 2>/dev/null
-	echo
 }
 
-usage(){		# 18/06/2018
+usage(){		# 22/06/2018
 
 	cat <<- end
 	  usage:  ${BLUE}$script [options]${STD}        ( ${RED}options and arguments must be SEPARATED by one space$STRD )
@@ -337,8 +403,12 @@ usage(){		# 18/06/2018
 	${BLUE}        --opt      :${STD} print list of dns servers and domains used for tests
 	${BLUE}    -h, --help     :${STD} this help
 	${BLUE}    -s, --sort     :${STD} sort on domain number (if no -c option)
-	${BLUE}    -u, --upgrade  :${STD} load and replace the script in place
-	${BLUE}    -v, --version  :${STD} version of the script online and in place
+	${BLUE}    -us            :${STD} load and replace the script in place
+	${BLUE}    -v, --version  :${STD} version of the script online
+
+	${BLUE}    -i, --install  :${STD} installation $RED(root required)${STD}
+	${BLUE}    -r, --remove   :${STD} uninstallation $RED(root required)${STD}
+	${BLUE}    -u, --upgrade  :${STD} download and update of installed script $RED(root required)${STD}
 
 	  examples:
 	${BLUE}      ./ntest                    :${STD} full report, with nameservers in /etc/resolv.conf and few open DNS servers
@@ -352,27 +422,11 @@ usage(){		# 18/06/2018
 	${BLUE}      ./ntest --bench --nodns    :${STD} bench for names's servers in resolv.conf, protocols configured in the net layer 
 
 	  more info: ${GREEN}$url_notice${STD}
-
-	end
-}
-
-# shellcheck disable=SC1117
-usage_version(){		# 18/06/2018
-
-	echo -n "$BLUE"
-	cat <<- end
-	             _            _   
-	   _ __  ___| |_ ___  ___| |_ 
-	  | '_ \/ __| __/ _ \/ __| __|
-	  | | | \__ \ ||  __/\__ \ |_ 
-	  |_| |_|___/\__\___||___/\__| $STD$script_options$BLUE
-	        version: $YELLOW$version $date$STD
-	
 	end
 }
 
 	# [$1=protocol used]
-z_core(){		# 03/06/2018
+z_core(){		# 22/06/2018
 	local ns server_ip server_name width wcol margin typeIp header xyz domain line time_sum counter counterNotFound notfound 
 	local time time_sum average unit report footer output ligneRapport 
 
@@ -490,14 +544,14 @@ z_core(){		# 03/06/2018
 			[ "$footer" ] && echo "$footer"
 		} >> "$output"
 		printf "%s \\n\\n" "report url:"
-		curl -s --upload-file "$output" "https://transfer.sh/$output"
+		curl -sS --upload-file "$output" "https://transfer.sh/$output"
 		echo
 		echo "voir le rapport généré: pager $output"
 		echo "effacer le rapport généré: rm $output"
 	fi
 }
 
-z_options(){		# 02/06/2018
+z_list_options(){		# 22/06/2018
 	local width testProto proto nameservers xyz dns ns ip test domain
 
 		# display open dns
@@ -584,20 +638,61 @@ z_options(){		# 02/06/2018
 		done
 		(( ${#domains_test[@]} % 5 != 0 )) && echo 
 	done
-	echo
 }
+
+z_nstest(){		# 22/06/2018
+
+	if [[ "$nodns" && "$noresolv" ]]; then
+		echo -e "$RED  nothing to do \\n$STD"
+		exit
+	fi
+
+	for list in "${!totest[@]}"; do
+		testsarray="${totest[$list]}"
+		getTime
+		if [[ $bench ]]; then
+			case "$protocol" in
+				-4  ) protos=-4 ;;
+				-6  ) protos=-6 ;;
+				-46 ) protos=( -4 -6 ) ;;
+			esac
+			for proto in "${protos[@]}"; do
+				case "$proto" in
+					-4 ) dns=( "${dns4[@]}" )
+						 nameservers=( "${nameservers4[@]}" ) ;;
+					-6 ) dns=( "${dns6[@]}" )
+						 nameservers=( "${nameservers6[@]}" ) ;;
+				esac
+				[ "$nodns" ] && unset dns
+				[ "$noresolv" ] && unset nameservers
+				z_core "$proto"
+				echo -n "  execution time: "
+				echo -en "$BLUE$( getTime end:auto )$STD\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
+			done
+			(( list != ${#totest[@]}-1 )) && sleep 30s
+		else
+			z_core
+			echo -n "  execution time: "
+			echo -en "$BLUE$( getTime end:auto )$STD\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
+		fi
+	done
+}
+
 
 #######  variables  script -----------------------------------------------------
 
 url_script="https://framagit.org/sdeb/nstest/raw/master/nstest"
 url_notice="https://framaclic.org/h/doc-nstest"		# https://framagit.org/sdeb/nstest/blob/master/README.md
+fileDev="/opt/bin/fileDev"
+script_install="/opt/bin/$script"
+
 
 #######  options processing ----------------------------------------------------
 
 f__basedirname
 f__color
 script_options="$*"
-usage_version
+f_affichage
 testsarray="base"
 totest="$testsarray"
 td=( base alt easy atld )
@@ -647,58 +742,38 @@ esac
 [ "$nodns" ] && unset dns
 [ "$noresolv" ] && unset nameservers
 [[ -z "$noresolv" && -z "$dnsfile" ]] && dnsfile="resolv.conf"
+(( ${#options[@]} == 0 )) && options=( --nstest )
 
 	# actions
 for i in "${options[@]}" ; do
+	# shellcheck disable=SC2221,SC2222
 	case "$i" in
-		     --opt      ) z_options; exit ;;
-		-u | --upgrade  ) script_upgrade; echo ; exit    ;;
-		-v | --version  ) script_get_version; echo; exit ;;
-		-h | --help | * ) usage ; exit ;;
+		-i | --install | -r | --remove | -u | --upgrade  )
+			if [ "$EUID" -ne 0 ]; then
+				echo "vous devez être ${RED}ROOT$STD pour cette opération"
+				f__sudo "exec $0 $script_options"
+				exit
+			fi 	;;&
+		-i  | --install )   script_install   ;;
+		-r  | --remove  )   script_uninstall ;;
+		-u  | --upgrade )   script_upgrade   ;;
+
+		--nstest ) z_nstest ;;
+		     --opt      ) z_list_options ;;
+		-us | --us      ) script_install="$dirscript/$basescript";  script_upgrade "update en place" ;;
+		-v  | --version ) script_get_version ;;
+
+		-h | --help | * ) usage ;;
 	esac
 done
 
 
 ####  nstest core --------------------------------------------------------------
 
-if [[ "$nodns" && "$noresolv" ]]; then
-	echo -e "$RED  nothing to do \\n$STD"
-	exit
-fi
-
-for list in "${!totest[@]}"; do
-	testsarray="${totest[$list]}"
-	getTime
-	if [[ $bench ]]; then
-		case "$protocol" in
-			-4  ) protos=-4 ;;
-			-6  ) protos=-6 ;;
-			-46 ) protos=( -4 -6 ) ;;
-		esac
-		for proto in "${protos[@]}"; do
-			case "$proto" in
-				-4 ) dns=( "${dns4[@]}" )
-					 nameservers=( "${nameservers4[@]}" ) ;;
-				-6 ) dns=( "${dns6[@]}" )
-					 nameservers=( "${nameservers6[@]}" ) ;;
-			esac
-			[ "$nodns" ] && unset dns
-			[ "$noresolv" ] && unset nameservers
-			z_core "$proto"
-			echo -n "  execution time: "
-			echo -en "$BLUE$( getTime end:auto )$STD\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
-			echo
-		done
-		(( list != ${#totest[@]}-1 )) && sleep 30s
-	else
-		z_core
-		echo -n "  execution time: "
-		echo -en "$BLUE$( getTime end:auto )$STD\\t ($( date '+%d/%m/%Y %H:%M %z' ))\\n"
-		echo
-	fi
-done
+echo
 
 exit 0
+
 ### END CONTROL (download control)
 
 curl -OL https://framaclic.org/h/nstest
