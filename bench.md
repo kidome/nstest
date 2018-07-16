@@ -1,7 +1,8 @@
 # nstest benches
 
 ## resolv bench
- 
+
+```text
              _            _   
    _ __  ___| |_ ___  ___| |_ 
   | '_ \/ __| __/ _ \/ __| __|
@@ -21,7 +22,7 @@
       n/a indicates an inaccessible server, dash (-) indicates a domain not found 
 
   execution time: 1884 ms	 (22/06/2018 15:23 +0200)
-
+```
 
 
 ## open DNS bench

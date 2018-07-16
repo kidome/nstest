@@ -7,9 +7,9 @@
 #    contributeurs: kyodev
 #####
 
-version=1.9.0
+version=1.9.1
 script="nstest"
-date="22/06/2018"
+date="16/07/2018"
 #contact="IRC ##sdeb@freenode.net ou https://framagit.org/sdeb/nstest/issues"
 
 if ! command -v sort > /dev/null; then
@@ -130,13 +130,19 @@ assign_variables(){		# 01/06/2018
 	domains_qty=${#domains_test[@]}
 }
 
-	# détermination dirname et basename avec suivi lien éventuel, assigne $dirscript & $basescript
-f__basedirname(){		# 28/04/2018
+	# détermination dirname/basename avec suivi lien éventuel, assigne $dirscript & $basescript
+	# si $1 path to file, assigne $basename & $dirname & $extname
+f__basedirname(){		# 19/06/2018
 
-	dirscript=$( readlink -f "$0" )		# /path/from/root/scriptname (absolute path)
-	# shellcheck disable=SC2034
-	basescript=${dirscript##*/}			# scriptname
-	dirscript=${dirscript%/*}			# /path/from/root/
+	if [ "$1" ]; then
+		basename=${1##*/}		; echo "$basename" > /dev/null
+		dirname=${1%/*}			; echo "$dirname" > /dev/null
+		extname=${basename##*.}	; echo "$extname" > /dev/null
+	else
+		dirscript=$( readlink -f "$0" )	; echo "$dirscript" > /dev/null		# /path/from/root/scriptname (absolute path)
+		basescript=${dirscript##*/}		; echo "$basescript" > /dev/null	# scriptname
+		dirscript=${dirscript%/*}		; echo "$dirscript" > /dev/null		# /path/from/root/
+	fi
 }
 
 # shellcheck disable=SC2034
@@ -213,18 +219,20 @@ f_ip_proto_detect(){		# 01/06/2018
 	echo "$protocol"
 }
 
-	# $1 temps en secondes, affiche conversion en jours, h, mn, s
-f__sec2day(){		# 05/05/2018
-	local j h mn sec display
+	# $1 temps en secondes [$2=jhms], affiche conversion en jours, h, mn, s, $2 format éventuel (j->limite j, jh->limite jour heure, ...)
+f__sec2day(){		# 23/06/2018
+	local format j h mn sec display
 
+[ -z "$2" ] && format='jhms' || format="$2"
 	  j=$(( $1 / (24*3600) ))
 	  h=$(( ($1 % (24*3600)) / 3600 ))
 	 mn=$(( (($1 % (24*3600)) % 3600) / 60 ))
 	sec=$(( (($1 % (24*3600)) % 3600) % 60 ))
-	(( j != 0)) && display+="$j jours "
-	(( h != 0)) && display+="$h h "
-	(( mn != 0)) && display+="$mn mn "
-	(( sec != 0)) && display+="$sec s "
+
+	(( j != 0 )) && [[ $format =~ j ]] && display+="$j jours "
+	(( h != 0 )) && [[ $format =~ h ]] && display+="$h h "
+	(( mn != 0 )) && [[ $format =~ m ]] && display+="$mn mn "
+	(( sec != 0 )) && [[ $format =~ s ]] && display+="$sec s "
 	echo "${display% }"
 }
 
@@ -689,7 +697,7 @@ script_install="/opt/bin/$script"
 
 #######  options processing ----------------------------------------------------
 
-f__basedirname
+f__basedirname ""
 f__color
 script_options="$*"
 f_affichage

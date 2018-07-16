@@ -1,7 +1,7 @@
 # nstest
 
 
-![version: 1.9.0](https://img.shields.io/badge/version-1.9.0-blue.svg?longCache=true&style=for-the-badge)
+![version: 1.9.1](https://img.shields.io/badge/version-1.9.1-blue.svg?longCache=true&style=for-the-badge)
 ![bash langage](https://img.shields.io/badge/bash-4-brightgreen.svg?longCache=true&style=for-the-badge)
 ![license LPRAB / WTFPL](https://img.shields.io/badge/license-LPRAB%20%2F%20WTFPL-blue.svg?longCache=true&style=for-the-badge)
 

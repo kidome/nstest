@@ -7,6 +7,14 @@ the date in format: YYYY-MM-DD
 
 
 
+
+
+## [1.9.1] - 2018.07.16
+
+* syncro: f__basedirname
+* syncro: f__sec2day
+* fixed: doc bench.md
+
 ## [1.9.0] - 2018.06.21
 
 * cosmetic: ,export, curl show error, renommage f_affichage
